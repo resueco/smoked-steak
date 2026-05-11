@@ -155,22 +155,49 @@ def test_get_metadata_prints_metadata_services(monkeypatch, capsys) -> None:
     assert "Tidal" in output
 
 
-def test_clean_metadata_keeps_only_main_and_guest_artist_roles() -> None:
+def test_clean_metadata_normalizes_non_main_artist_roles_to_guest() -> None:
     metadata = make_release_data()
     metadata["artists"] = [
         ("Example Artist", "main"),
         ("Guest Artist", "guest"),
         ("Composer Person", "composer"),
         ("Remixer Person", "remixer"),
+        ("Conductor Person", "conductor"),
+        ("Compiler Person", "djcompiler"),
+        ("Producer Person", "producer"),
     ]
     metadata["tracks"]["1"]["1"]["artists"] = [
         ("Example Artist", "main"),
         ("Guest Artist", "guest"),
         ("Composer Person", "composer"),
         ("Remixer Person", "remixer"),
+        ("Conductor Person", "conductor"),
+        ("Compiler Person", "djcompiler"),
+        ("Producer Person", "producer"),
     ]
 
     cleaned = metadata_mod.clean_metadata(metadata)
 
-    assert cleaned["artists"] == [("Example Artist", "main"), ("Guest Artist", "guest")]
-    assert cleaned["tracks"]["1"]["1"]["artists"] == [("Example Artist", "main"), ("Guest Artist", "guest")]
+    assert cleaned["artists"] == [
+        ("Example Artist", "main"),
+        ("Guest Artist", "guest"),
+        ("Composer Person", "guest"),
+        ("Remixer Person", "guest"),
+        ("Conductor Person", "guest"),
+        ("Compiler Person", "guest"),
+        ("Producer Person", "guest"),
+    ]
+    assert cleaned["tracks"]["1"]["1"]["artists"] == cleaned["artists"]
+
+
+def test_clean_metadata_prefers_main_when_artist_has_multiple_roles() -> None:
+    metadata = make_release_data()
+    metadata["tracks"]["1"]["1"]["artists"] = [
+        ("Example Artist", "composer"),
+        ("Example Artist", "main"),
+    ]
+
+    cleaned = metadata_mod.clean_metadata(metadata)
+
+    assert cleaned["artists"] == [("Example Artist", "main")]
+    assert cleaned["tracks"]["1"]["1"]["artists"] == [("Example Artist", "main")]

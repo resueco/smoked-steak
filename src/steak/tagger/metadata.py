@@ -285,12 +285,19 @@ def remove_various_artists(tracks):
 
 
 def keep_upload_artist_roles(metadata):
-    """Keep only artist roles accepted for uploads."""
-    allowed_roles = {"main", "guest"}
+    """Normalize upload artist roles to main or guest."""
     for track in chain.from_iterable(disc.values() for disc in metadata["tracks"].values()):
-        filtered_artists = [(artist, role) for artist, role in track["artists"] if role in allowed_roles]
-        if any(role == "main" for _artist, role in filtered_artists):
-            track["artists"] = filtered_artists
+        normalized_artists = []
+        artist_indexes = {}
+        for artist, role in track["artists"]:
+            normalized_role = "main" if role == "main" else "guest"
+            key = artist.casefold()
+            if key not in artist_indexes:
+                artist_indexes[key] = len(normalized_artists)
+                normalized_artists.append((artist, normalized_role))
+            elif normalized_role == "main":
+                normalized_artists[artist_indexes[key]] = (artist, "main")
+        track["artists"] = normalized_artists
 
     metadata["artists"], metadata["tracks"] = generate_artists(metadata["tracks"])
     return metadata
