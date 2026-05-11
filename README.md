@@ -1,5 +1,3 @@
-[![Build and Publish Docker Image](https://github.com/YOUR_GITHUB_USERNAME/smoked-steak/actions/workflows/docker-image.yml/badge.svg)](https://github.com/YOUR_GITHUB_USERNAME/smoked-steak/actions/workflows/docker-image.yml) [![Linting](https://github.com/YOUR_GITHUB_USERNAME/smoked-steak/actions/workflows/lint.yml/badge.svg?branch=master)](https://github.com/YOUR_GITHUB_USERNAME/smoked-steak/actions/workflows/lint.yml)
-
 # smoked-steak
 
 A simple tool to take the work out of uploading on Gazelle-based trackers. It generates spectrals, gathers metadata, allows re-tagging/renaming files, and automates the upload process.
@@ -307,20 +305,3 @@ uv sync
 For **Docker users**:
 ```bash
 docker pull ghcr.io/YOUR_GITHUB_USERNAME/smoked-steak:latest
-```
-
-## 📞 Support
-For bug reports and feature requests, use GitHub Issues. Or use the forums.
-
-
-## 🎭 Testimonials
-```
-"Steak filled the void in my heart. I no longer chase after girls." ~boot
-"With the help of steak, I overcame my addiction to kpop thots." ~b
-"I warn 5 people every day on the forums using steak!" ~jon
-```
-
-## 🎩 Credits
-* Originally created by [ligh7s](https://github.com/ligh7s/smoked-steak). Huge thanks!
-* Further development & maintenance by elghoto, xmoforf, miandru, redusys, kyokomiki and others. Keeping the dream alive.
-* Docker image build workflow and update notification mechanisms heavily inspired from the awesome work of Audionut on his [Upload Assistant tool](https://github.com/Audionut/Upload-Assistant) !
