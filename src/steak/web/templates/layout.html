@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        {% block head %}
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <title>{% block title %}{% endblock %} - Smoked Steak</title>
+        <link rel="stylesheet" href="{{ static('/css/main.css') }}">
+        <script src="{{ static('/scripts/theme.js') }}" defer></script>
+        <meta name="application-name" content="&nbsp;"/>
+        <meta name="msapplication-TileColor" content="#FFFFFF">
+        {% endblock %}
+    </head>
+
+    <body>
+        <header>
+            <div class="logo-container">
+                <a href="/" class="logo">
+                    <div>
+                        <div class="ascii-art">
+                            [ smoked-steak ]
+                        </div>
+                        <div class="tagline">
+                            Uploads prepared to order
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">🌙</button>
+        </header>
+        <div style="display: none">
+            <span id="static_dir">{{ static('') }}</span>
+        </div>
+
+        <div class="body">
+            {% block content %}
+            {% endblock %}
+        </div>
+
+        <footer>
+            {% block footer %}
+            smoked steak~~ upload away<br>
+            {% endblock %}
+        </footer>
+    </body>
+</html>

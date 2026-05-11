@@ -1,0 +1,5 @@
+.*
+Dockerfile
+config.py
+smoked.db
+__pycache__

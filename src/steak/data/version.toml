@@ -1,0 +1,8 @@
+current = "0.10.1"
+
+[[changelog]]
+version = "0.10.1"
+date = "2026-05-11"
+notes = """
+Initial private smoked-steak baseline.
+"""
