@@ -1,7 +1,7 @@
 import asyncio
 import json
 from copy import copy
-from itertools import islice
+from itertools import chain, islice
 from typing import Any
 
 import asyncclick as click
@@ -284,6 +284,18 @@ def remove_various_artists(tracks):
             track["artists"] = artists
 
 
+def keep_upload_artist_roles(metadata):
+    """Keep only artist roles accepted for uploads."""
+    allowed_roles = {"main", "guest"}
+    for track in chain.from_iterable(disc.values() for disc in metadata["tracks"].values()):
+        filtered_artists = [(artist, role) for artist, role in track["artists"] if role in allowed_roles]
+        if any(role == "main" for _artist, role in filtered_artists):
+            track["artists"] = filtered_artists
+
+    metadata["artists"], metadata["tracks"] = generate_artists(metadata["tracks"])
+    return metadata
+
+
 def clean_metadata(metadata):
     for disc, tracks in metadata["tracks"].items():
         for num, track in tracks.items():
@@ -297,4 +309,5 @@ def clean_metadata(metadata):
 
     if metadata["catno"] and metadata["catno"].replace(" ", "") == str(metadata["upc"]):
         metadata["catno"] = None
+    metadata = keep_upload_artist_roles(metadata)
     return metadata

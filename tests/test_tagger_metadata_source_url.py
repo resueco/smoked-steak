@@ -153,3 +153,24 @@ def test_get_metadata_prints_metadata_services(monkeypatch, capsys) -> None:
     assert "Metadata URL services:" in output
     assert "Qobuz" in output
     assert "Tidal" in output
+
+
+def test_clean_metadata_keeps_only_main_and_guest_artist_roles() -> None:
+    metadata = make_release_data()
+    metadata["artists"] = [
+        ("Example Artist", "main"),
+        ("Guest Artist", "guest"),
+        ("Composer Person", "composer"),
+        ("Remixer Person", "remixer"),
+    ]
+    metadata["tracks"]["1"]["1"]["artists"] = [
+        ("Example Artist", "main"),
+        ("Guest Artist", "guest"),
+        ("Composer Person", "composer"),
+        ("Remixer Person", "remixer"),
+    ]
+
+    cleaned = metadata_mod.clean_metadata(metadata)
+
+    assert cleaned["artists"] == [("Example Artist", "main"), ("Guest Artist", "guest")]
+    assert cleaned["tracks"]["1"]["1"]["artists"] == [("Example Artist", "main"), ("Guest Artist", "guest")]
