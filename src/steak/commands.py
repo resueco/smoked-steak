@@ -17,6 +17,7 @@ import steak.sources
 import steak.tagger
 import steak.trackers
 import steak.uploader
+import steak.web
 from steak import cfg
 from steak.common import commandgroup, str_to_int_if_int
 from steak.common import compress as recompress
@@ -173,6 +174,18 @@ async def checkspecs(tracker: str | None, torrent_id: str | None, path: str) -> 
     click.echo(f"Generating spectrals for {source} sourced: {path}")
     track_data = gather_audio_info(path)
     await post_upload_spectral_check(gazelle_site, path, torrent_id_int, None, track_data, source, source_url)
+
+
+@commandgroup.command()
+async def web() -> None:
+    """Start the web interface."""
+    runner = await steak.web.create_app_async()
+    url = f"http://{cfg.upload.web_interface.effective_host}:{cfg.upload.web_interface.port}"
+    click.secho(f"Smoked Steak web interface running at {url}", fg="green")
+    try:
+        await asyncio.Event().wait()
+    finally:
+        await runner.cleanup()
 
 
 def _backup_config(config_path: str) -> None:
