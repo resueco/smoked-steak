@@ -297,6 +297,9 @@ def keep_upload_artist_roles(metadata):
                 normalized_artists.append((artist, normalized_role))
             elif normalized_role == "main":
                 normalized_artists[artist_indexes[key]] = (artist, "main")
+        if normalized_artists and not any(role == "main" for _artist, role in normalized_artists):
+            artist, _role = normalized_artists[0]
+            normalized_artists[0] = (artist, "main")
         track["artists"] = normalized_artists
 
     metadata["artists"], metadata["tracks"] = generate_artists(metadata["tracks"])

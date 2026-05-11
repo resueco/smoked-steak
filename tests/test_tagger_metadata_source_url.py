@@ -201,3 +201,16 @@ def test_clean_metadata_prefers_main_when_artist_has_multiple_roles() -> None:
 
     assert cleaned["artists"] == [("Example Artist", "main")]
     assert cleaned["tracks"]["1"]["1"]["artists"] == [("Example Artist", "main")]
+
+
+def test_clean_metadata_promotes_first_guest_when_track_has_no_main_artist() -> None:
+    metadata = make_release_data()
+    metadata["tracks"]["1"]["1"]["artists"] = [
+        ("Composer Person", "composer"),
+        ("Remixer Person", "remixer"),
+    ]
+
+    cleaned = metadata_mod.clean_metadata(metadata)
+
+    assert cleaned["artists"] == [("Composer Person", "main"), ("Remixer Person", "guest")]
+    assert cleaned["tracks"]["1"]["1"]["artists"] == [("Composer Person", "main"), ("Remixer Person", "guest")]
