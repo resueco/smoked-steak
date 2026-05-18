@@ -1,7 +1,6 @@
 import os
 import re
 import shutil
-import sys
 from copy import copy
 from string import Formatter
 
@@ -19,9 +18,7 @@ from steak.errors import UploadError
 def rename_folder(path, metadata, auto_rename, check=True):
     """
     Create a revised folder name from the new metadata and present it to the
-    user. Have them decide whether or not to accept the folder name.
-    Then offer them the ability to edit the folder name in a text editor
-    before the renaming occurs.
+    user. The original folder name is kept when a rename is recommended.
     For scene releases, the name of the original folder is kept untouched, and
     the folder is copied to the download folder.
     """
@@ -29,18 +26,13 @@ def rename_folder(path, metadata, auto_rename, check=True):
     new_base = generate_folder_name(metadata)
     if metadata["scene"]:
         new_base = old_base
-        auto_rename = True
 
     if check and old_base != new_base:
         click.secho("\nRenaming folder...", fg="cyan", bold=True)
         click.echo(f"Old folder name        : {old_base}")
         click.echo(f"New pending folder name: {new_base}")
-
-        user_rename_choice = cfg.upload.yes_all or click.confirm(
-            click.style("\nWould you like to replace the original folder name?", fg="magenta"), default=True
-        )
-
-        new_base = _edit_folder_interactive(new_base, auto_rename) if auto_rename or user_rename_choice else old_base
+        click.secho("Keeping original folder name.", fg="yellow")
+        new_base = old_base
 
     new_path = os.path.join(cfg.directory.download_directory, new_base)
     if os.path.isdir(new_path) and not os.path.samefile(path, new_path):
@@ -138,31 +130,3 @@ def _fix_format(metadata, keys):
             if metadata["encoding_vbr"]:
                 sub_metadata["format"] += " (VBR)"
     return sub_metadata
-
-
-def _edit_folder_interactive(foldername, auto_rename):
-    """Allow the user to edit the pending folder name in a text editor."""
-    if auto_rename:
-        return foldername
-    if not click.confirm(
-        click.style("Is the new folder name acceptable? ([n] to edit)", fg="magenta"),
-        default=True,
-    ):
-        newname = click.edit(foldername, editor=cfg.upload.default_editor)
-        while True:
-            if newname is None:
-                return foldername
-            elif re.search(BLACKLISTED_CHARS, newname):
-                if not click.confirm(
-                    click.style(
-                        "Folder name contains invalid characters, retry?",
-                        fg="magenta",
-                        bold=True,
-                    ),
-                    default=True,
-                ):
-                    sys.exit(1)
-            else:
-                return newname.strip().replace("\n", "")
-            newname = click.edit(foldername, editor=cfg.upload.default_editor)
-    return foldername

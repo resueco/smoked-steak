@@ -36,11 +36,7 @@ def tag_files(path, tags, metadata, auto_rename):
     album_changes = collect_album_data(metadata)
     track_changes = create_track_changes(tags, metadata)
     print_changes(album_changes, track_changes, next(iter(tags.values())))
-    if auto_rename or click.confirm(
-        click.style("\nWould you like to auto-tag the files with the updated metadata?", fg="magenta"),
-        default=True,
-    ):
-        retag_files(path, album_changes, track_changes)
+    click.secho("Skipping auto-tagging files.", fg="yellow")
 
 
 def check_whether_to_tag(tags, metadata):
@@ -260,7 +256,6 @@ def rename_files(path, tags, metadata, auto_rename, source=None):
     for confirmation. Apply the changes if user agrees.
     """
     to_rename = []
-    folders_to_create = set()
     multi_disc = len(metadata["tracks"]) > 1
     md_word = {"CD": "CD", "Vinyl": "LP"}.get(source or "", "Part")
     # "Part" is default if not CD or Vinyl
@@ -283,32 +278,10 @@ def rename_files(path, tags, metadata, auto_rename, source=None):
             new_name = os.path.join(f"{md_word}{disc_number:02d}", new_name)
         if filename != new_name:
             to_rename.append((filename, new_name))
-            if multi_disc:
-                folders_to_create.add(os.path.join(path, f"{md_word}{disc_number:02d}"))
 
     if to_rename:
         print_filenames(to_rename)
-        if auto_rename or click.confirm(
-            click.style("\nWould you like to rename the files?", fg="magenta"),
-            default=True,
-        ):
-            for folder in folders_to_create:
-                if not os.path.isdir(folder):
-                    os.mkdir(folder)
-            directory_move_pairs = set()
-            for filename, new_name in to_rename:
-                old_dir = os.path.dirname(os.path.join(path, filename))
-                new_dir = os.path.dirname(os.path.join(path, new_name))
-
-                if old_dir != path:
-                    directory_move_pairs.add((os.path.splitext(filename)[1], old_dir, new_dir))
-                new_path, new_path_ext = os.path.splitext(os.path.join(path, new_name))
-                # new_path = new_path[: 200 - len(new_path_ext) + len(os.path.dirname(path))] + new_path_ext
-                new_path = new_path + new_path_ext
-                os.rename(os.path.join(path, filename), new_path)
-
-            move_non_audio_files(directory_move_pairs)
-            delete_empty_folders(path)
+        click.secho("Skipping file renaming.", fg="yellow")
     else:
         click.secho("\nNo file renaming is recommended.", fg="green")
 
