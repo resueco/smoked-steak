@@ -1,9 +1,7 @@
 import asyncio
-import html
 import os
 import shutil
 from typing import Any
-from urllib import parse
 
 import anyio
 import asyncclick as click
@@ -21,47 +19,12 @@ from steak import cfg
 from steak.common import commandgroup, str_to_int_if_int
 from steak.common import compress as recompress
 from steak.config import find_config_path, get_default_config_path, get_user_cfg_path
-from steak.tagger.audio_info import gather_audio_info
 from steak.tagger.combine import combine_metadatas
 from steak.tagger.metadata import clean_metadata, remove_various_artists
 from steak.tagger.retagger import create_artist_str
 from steak.tagger.sources import run_metadata
-from steak.uploader.spectrals import (
-    check_spectrals,
-    get_spectrals_path,
-    handle_spectrals_upload_and_deletion,
-    post_upload_spectral_check,
-)
 from steak.uploader.torrent_client import TorrentClientGenerator
 from steak.uploader.upload import generate_source_links
-
-
-@commandgroup.command()
-@click.argument("path", type=click.Path(exists=True, file_okay=False, resolve_path=True), nargs=1)
-@click.option("--no-delete-specs", "-nd", is_flag=True)
-@click.option("--format-output", "-f", is_flag=True)
-async def specs(path: str, no_delete_specs: bool, format_output: bool) -> None:
-    """Generate and open spectrals for a folder."""
-    audio_info = gather_audio_info(path, True)
-    _, sids = await check_spectrals(path, audio_info, check_lma=False)
-    spath = get_spectrals_path(path)
-    spectral_urls = await handle_spectrals_upload_and_deletion(spath, sids, delete_spectrals=not no_delete_specs)
-
-    filenames = list(audio_info.keys())
-    if spectral_urls:
-        output_lines: list[str] = []
-        for spec_id, urls in spectral_urls.items():
-            if format_output:
-                output_lines.append(f"[hide={filenames[spec_id - 1]}][img={'][img='.join(urls)}][/hide]")
-            else:
-                output_lines.append(f"{filenames[spec_id - 1]}: {' '.join(urls)}")
-        output = "\n".join(output_lines)
-        click.secho(output)
-        if cfg.upload.description.copy_uploaded_url_to_clipboard:
-            pyperclip.copy(output)
-
-    if no_delete_specs:
-        click.secho(f"Spectrals saved to {spath}", fg="green")
 
 
 @commandgroup.command()
@@ -109,70 +72,6 @@ async def compress(path: str) -> None:
                 filepath = os.path.join(root, f)
                 click.secho(f"Recompressing {filepath[len(path) + 1 :]}...")
                 await recompress(filepath)
-
-
-@commandgroup.command()
-@click.option(
-    "--torrent-id",
-    "-i",
-    default=None,
-    help="Torrent id or URL, tracker from URL will overule -t flag.",
-)
-@click.option(
-    "--tracker",
-    "-t",
-    help=f"Tracker choices: ({'/'.join(steak.trackers.tracker_list)})",
-)
-@click.argument(
-    "path",
-    type=click.Path(exists=True, file_okay=False, resolve_path=True),
-    nargs=1,
-    default=".",
-)
-async def checkspecs(tracker: str | None, torrent_id: str | None, path: str) -> None:
-    """Check and upload spectrals of a given torrent.
-
-    Based on local files, not the ones on the tracker.
-    By default checks the folder the script is run from.
-    Can add spectrals to a torrent description and report a torrent as lossy web.
-    """
-    torrent_id_input: str = torrent_id or ""
-    if not torrent_id_input:
-        click.secho("No torrent id provided.", fg="red")
-        torrent_id_input = await click.prompt(
-            click.style(
-                """Input a torrent id or a URL containing one.
-                Tracker in a URL will override -t flag.""",
-                fg="magenta",
-                bold=True,
-            ),
-        )
-
-    torrent_id_int: int
-    if "/torrents.php" in torrent_id_input:
-        base_url = parse.urlparse(torrent_id_input).netloc
-        if base_url in steak.trackers.tracker_url_code_map:
-            # this will overide -t tracker
-            tracker = steak.trackers.tracker_url_code_map[base_url]
-        else:
-            click.echo("Unrecognised tracker!")
-            raise click.Abort
-        torrent_id_int = int(parse.parse_qs(parse.urlparse(torrent_id_input).query)["torrentid"][0])
-    elif torrent_id_input.strip().isdigit():
-        torrent_id_int = int(torrent_id_input)
-    else:
-        click.echo("Not a valid torrent!")
-        raise click.Abort
-
-    tracker = await steak.trackers.validate_tracker(None, "tracker", tracker)
-    gazelle_site = steak.trackers.get_class(tracker)()
-    req = await gazelle_site.api_call("torrent", params={"id": torrent_id_int})
-    path = os.path.join(path, html.unescape(req["torrent"]["filePath"]))
-    source_url = None
-    source = req["torrent"]["media"]
-    click.echo(f"Generating spectrals for {source} sourced: {path}")
-    track_data = gather_audio_info(path)
-    await post_upload_spectral_check(gazelle_site, path, torrent_id_int, None, track_data, source, source_url)
 
 
 def _backup_config(config_path: str) -> None:

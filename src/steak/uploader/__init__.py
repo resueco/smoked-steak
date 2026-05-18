@@ -59,14 +59,6 @@ from steak.uploader.dupe_checker import (
 from steak.uploader.preassumptions import confirm_group_upload, print_preassumptions
 from steak.uploader.request_checker import check_requests
 from steak.uploader.seedbox import UploadManager
-from steak.uploader.spectrals import (
-    check_spectrals,
-    generate_lossy_approval_comment,
-    get_spectrals_path,
-    handle_spectrals_upload_and_deletion,
-    post_upload_spectral_check,
-    report_lossy_master,
-)
 from steak.uploader.upload import (
     concat_track_data,
     prepare_and_upload,
@@ -86,19 +78,6 @@ if TYPE_CHECKING:
     type=click.STRING,
     callback=validate_source,
     help=f"Source of files ({'/'.join(SOURCES.values())})",
-)
-@click.option(
-    "--lossy/--not-lossy",
-    "-l/-L",
-    default=None,
-    help="Whether or not the files are lossy mastered",
-)
-@click.option(
-    "--spectrals",
-    "-sp",
-    type=click.INT,
-    multiple=True,
-    help="Track numbers of spectrals to include in torrent description",
 )
 @click.option(
     "--overwrite",
@@ -127,12 +106,6 @@ if TYPE_CHECKING:
     help=f"Uploading Choices: ({'/'.join(steak.trackers.tracker_list)})",
 )
 @click.option("--request", "-r", default=None, help="Pass a request URL or ID")
-@click.option(
-    "--spectrals-after",
-    "-a",
-    is_flag=True,
-    help="Assess / upload / report spectrals after torrent upload",
-)
 @click.option(
     "--auto-rename",
     "-n",
@@ -187,14 +160,11 @@ async def up(
     path: str,
     group_id: int | None,
     source: str | None,
-    lossy: bool | None,
-    spectrals: tuple[int, ...],
     overwrite: bool,
     encoding: str | None,
     compress: bool,
     tracker: str,
     request: str | None,
-    spectrals_after: bool,
     auto_rename: bool,
     skip_up: bool,
     scene: bool,
@@ -221,10 +191,7 @@ async def up(
         path,
         group_id,
         source,
-        lossy,
-        spectrals,
         encoding,
-        spectrals_after,
     )
     if group_id:
         await confirm_group_upload(gazelle_site, group_id, source)
@@ -235,15 +202,12 @@ async def up(
         path,
         group_id,
         source,
-        lossy,
-        spectrals,
         encoding,
         source_url=source_url,
         scene=scene,
         overwrite_meta=overwrite,
         recompress=compress,
         request_id=request,
-        spectrals_after=spectrals_after,
         auto_rename=auto_rename,
         skip_up=skip_up,
         skip_mqa=skip_mqa,
@@ -260,8 +224,6 @@ async def upload(
     path: str,
     group_id: int | None,
     source: str | None,
-    lossy: bool | None,
-    spectrals: tuple[int, ...],
     encoding: str | None,
     scene: bool = False,
     overwrite_meta: bool = False,
@@ -269,7 +231,6 @@ async def upload(
     source_url: str | None = None,
     searchstrs: list[str] | None = None,
     request_id: int | str | None = None,
-    spectrals_after: bool = False,
     auto_rename: bool = False,
     skip_up: bool = False,
     skip_mqa: bool = False,
@@ -288,8 +249,6 @@ async def upload(
         path: Path to the album folder.
         group_id: Optional existing group ID.
         source: Media source (CD, WEB, etc).
-        lossy: Whether files are lossy mastered.
-        spectrals: Track numbers for spectrals.
         encoding: Audio encoding.
         scene: Whether this is a scene release.
         overwrite_meta: Whether to overwrite metadata.
@@ -297,7 +256,6 @@ async def upload(
         source_url: Source URL for WEB uploads.
         searchstrs: Search strings for dupe checking.
         request_id: Request ID to fill.
-        spectrals_after: Check spectrals after upload.
         auto_rename: Auto-rename files and folders.
         skip_up: Skip upconvert check.
         skip_mqa: Skip MQA check.
@@ -372,17 +330,6 @@ async def upload(
             if len(searchstrs) > 0:
                 group_id = await check_existing_group(gazelle_site, searchstrs)
 
-        spectral_ids = None
-        lossy_master: bool = False
-        if spectrals_after:
-            # We tell the uploader not to worry about it being lossy until later.
-            pass
-        else:
-            lossy_result, spectral_ids = await check_spectrals(
-                path, audio_info, lossy, spectrals, format=rls_data["format"]
-            )
-            lossy_master = lossy_result if lossy_result is not None else False
-
         metadata, new_source_url = await get_metadata(path, tags, rls_data)
         if new_source_url is not None:
             source_url = new_source_url
@@ -396,7 +343,6 @@ async def upload(
             rls_data,
             recompress,
             auto_rename,
-            spectral_ids,
             skip_integrity_check,
             essential_only,
             skip_initial_review,
@@ -423,16 +369,6 @@ async def upload(
             shutil.rmtree(path)
             return click.secho("\nDeleted folder, aborting upload...", fg="red")
 
-    lossy_comment = None
-    if spectrals_after:
-        spectral_urls = None
-    else:
-        if lossy_master:
-            lossy_comment = await generate_lossy_approval_comment(source_url, list(track_data.keys()))
-            click.echo()
-
-        spectrals_path = get_spectrals_path(path)
-        spectral_urls = await handle_spectrals_upload_and_deletion(spectrals_path, spectral_ids)
     if cfg.upload.requests.last_minute_dupe_check:
         await last_min_dupe_check(gazelle_site, searchstrs)
 
@@ -451,13 +387,6 @@ async def upload(
         while True:
             # Loop until we don't want to upload to any more sites.
             if not tracker:
-                if spectrals_after and torrent_id:
-                    # Here we are checking the spectrals after uploading to the first site
-                    # if they were not done before.
-                    lossy_master, lossy_comment, spectral_urls, spectral_ids = await post_upload_spectral_check(
-                        gazelle_site, path, torrent_id, None, track_data, source, source_url, format=rls_data["format"]
-                    )
-                    spectrals_after = False
                 click.secho("\nWould you like to upload to another tracker? ", fg="magenta", nl=False)
                 tracker = await steak.trackers.choose_tracker(remaining_gazelle_sites)
                 if not tracker:
@@ -503,10 +432,6 @@ async def upload(
                     cover_url,
                     track_data,
                     hybrid,
-                    lossy_master,
-                    spectral_urls,
-                    spectral_ids,
-                    lossy_comment,
                     request_id,
                     source_url,
                     seedbox_uploader,
@@ -538,10 +463,6 @@ async def upload(
                             cover_url,
                             track_data,
                             hybrid,
-                            lossy_master,
-                            spectral_urls,
-                            spectral_ids,
-                            lossy_comment,
                             request_id,
                             source_url,
                             seedbox_uploader,
@@ -569,7 +490,6 @@ async def edit_metadata(
     rls_data: dict[str, Any],
     recompress: bool,
     auto_rename: bool,
-    spectral_ids: dict[int, str] | None,
     skip_integrity_check: bool = False,
     essential_only: bool = False,
     skip_initial_review: bool = False,
@@ -588,7 +508,6 @@ async def edit_metadata(
         rls_data: Release data dictionary from pre_data construction.
         recompress: Whether to recompress audio files after tagging.
         auto_rename: Whether to automatically rename files and folder.
-        spectral_ids: Mapping of track index to spectral image ID, or None.
         skip_integrity_check: Whether to skip the integrity check step.
         essential_only: If True, only essential extensions are allowed.
         skip_initial_review: Skip the first manual metadata review before AI review.
@@ -618,7 +537,7 @@ async def edit_metadata(
             await recompress_path(path)
         path = rename_folder(path, metadata, auto_rename)
         if not metadata["scene"]:
-            rename_files(path, tags, metadata, auto_rename, spectral_ids, source)
+            rename_files(path, tags, metadata, auto_rename, source)
         await check_folder_structure(path, metadata["scene"], essential_only=essential_only)
 
         if not skip_integrity_check:
@@ -874,10 +793,6 @@ async def execute_downconversion_tasks(
     cover_url: str | None,
     track_data: dict[str, Any],
     hybrid: bool,
-    lossy_master: bool,
-    spectral_urls: dict[int, list[str]] | None,
-    spectral_ids: dict[int, str] | None,
-    lossy_comment: str | None,
     request_id: int | str | None,
     source_url: str | None,
     seedbox_uploader: UploadManager,
@@ -895,10 +810,6 @@ async def execute_downconversion_tasks(
         cover_url: Cover image URL.
         track_data: Track information.
         hybrid: Whether this is a hybrid release.
-        lossy_master: Whether this is lossy mastered.
-        spectral_urls: Spectral image URLs.
-        spectral_ids: Spectral IDs.
-        lossy_comment: Lossy approval comment.
         request_id: Request ID to fill.
         source_url: Source URL.
         seedbox_uploader: Seedbox upload manager.
@@ -907,13 +818,6 @@ async def execute_downconversion_tasks(
     """
 
     base_path = path
-
-    override_lossy_comment = (
-        f"Transcode of {base_url}\n[hide=Lossy comment of original torrent]{lossy_comment}[/hide]\n"
-        if lossy_comment
-        else None
-    )
-
     for task in selected_tasks:
         click.secho(f"\nProcessing: {task['name']}", fg="cyan", bold=True)
 
@@ -943,16 +847,11 @@ async def execute_downconversion_tasks(
                 cover_url,
                 track_data,
                 hybrid,
-                lossy_master,
-                spectral_urls,
-                spectral_ids,
-                lossy_comment,
                 request_id,
                 source_url,
                 seedbox_uploader,
                 source=source,
                 override_description=description,
-                override_lossy_comment=override_lossy_comment,
             )
 
             click.secho(f"  ✓ {task['name']} conversion completed", fg="green")
@@ -985,16 +884,11 @@ async def execute_downconversion_tasks(
                 cover_url,
                 track_data,
                 hybrid,
-                lossy_master,
-                spectral_urls,
-                spectral_ids,
-                lossy_comment,
                 request_id,
                 source_url,
                 seedbox_uploader,
                 source=source,
                 override_description=description,
-                override_lossy_comment=override_lossy_comment,
             )
 
             click.secho(f"  ✓ {task['name']} transcode completed", fg="green")
@@ -1008,18 +902,13 @@ async def upload_and_report(
     cover_url: str | None,
     track_data: dict[str, Any],
     hybrid: bool,
-    lossy_master: bool,
-    spectral_urls: dict[int, list[str]] | None,
-    spectral_ids: dict[int, str] | None,
-    lossy_comment: str | None,
     request_id: int | str | None,
     source_url: str | None,
     seedbox_uploader: UploadManager,
     source: str | None = None,
     override_description: str | None = None,
-    override_lossy_comment: str | None = None,
 ) -> tuple[int, int, str, Any, str]:
-    """Upload torrent and report lossy master if needed.
+    """Upload torrent.
 
     Args:
         gazelle_site: The tracker API instance.
@@ -1029,17 +918,11 @@ async def upload_and_report(
         cover_url: Cover image URL.
         track_data: Track information.
         hybrid: Whether this is a hybrid release.
-        lossy_master: Whether this is lossy mastered.
-        spectral_urls: Spectral image URLs.
-        spectral_ids: Spectral IDs.
-        lossy_comment: Lossy approval comment.
         request_id: Request ID to fill.
         source_url: Source URL.
         seedbox_uploader: Seedbox upload manager.
         source: Media source.
         override_description: Override torrent description.
-        override_lossy_comment: Override lossy comment.
-
     Returns:
         Tuple of (torrent_id, group_id, torrent_path, torrent_content, url).
     """
@@ -1052,10 +935,6 @@ async def upload_and_report(
         "cover_url": cover_url,
         "track_data": track_data,
         "hybrid": hybrid,
-        "lossy_master": lossy_master,
-        "spectral_urls": spectral_urls,
-        "spectral_ids": spectral_ids,
-        "lossy_comment": lossy_comment,
         "request_id": request_id,
         "source_url": source_url,
         **({"override_description": override_description} if override_description else {}),
@@ -1063,18 +942,6 @@ async def upload_and_report(
 
     # Execute upload
     torrent_id, group_id, torrent_path, torrent_content = await prepare_and_upload(**upload_kwargs)
-
-    # Handle lossy master reporting
-    if lossy_master:
-        await report_lossy_master(
-            gazelle_site,
-            torrent_id,
-            spectral_urls,
-            spectral_ids,
-            source,
-            override_lossy_comment if override_lossy_comment else lossy_comment,
-            source_url=source_url,
-        )
 
     # Generate URL
     url = f"{gazelle_site.base_url}/torrents.php?torrentid={torrent_id}"

@@ -136,7 +136,7 @@ async def tag(
     await download_cover_if_nonexistent(path, metadata["cover"])
     tags = await check_tags(path)
     path = rename_folder(path, metadata, auto_rename)
-    rename_files(path, tags, metadata, auto_rename, None)
+    rename_files(path, tags, metadata, auto_rename)
     await check_folder_structure(path, scene=False)
     click.secho(f"\nProcessed {path}", fg="cyan", bold=True)
 

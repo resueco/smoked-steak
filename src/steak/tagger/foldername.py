@@ -81,31 +81,6 @@ def rename_folder(path, metadata, auto_rename, check=True):
         if cfg.upload.formatting.remove_source_dir:
             shutil.rmtree(path)
 
-    # Also rename spectrals folder in TMP_DIR if it exists
-    if cfg.directory.tmp_dir and os.path.exists(cfg.directory.tmp_dir):
-        tmp_old_specs_path = os.path.join(cfg.directory.tmp_dir, f"spectrals_{old_base}")
-        tmp_new_specs_path = os.path.join(cfg.directory.tmp_dir, f"spectrals_{new_base}")
-
-        if not os.path.exists(tmp_old_specs_path):
-            pass  # No spectrals folder exists, nothing to rename
-        elif os.path.exists(tmp_new_specs_path) and os.path.samefile(tmp_old_specs_path, tmp_new_specs_path):
-            click.secho(f"Skipping copy, same location already for '{tmp_new_specs_path}'", fg="yellow")
-        else:
-            if use_hardlinks:
-                try:
-                    shutil.copytree(tmp_old_specs_path, tmp_new_specs_path, copy_function=os.link, dirs_exist_ok=True)
-                    click.secho(f"Hardlinked temporary spectrals folder to '{tmp_new_specs_path}'.", fg="yellow")
-                except shutil.Error as _:
-                    click.secho("Hardlinking didn't work, falling back to non-hardlink copy...", fg="red")
-                    shutil.copytree(tmp_old_specs_path, tmp_new_specs_path, dirs_exist_ok=True)
-                    click.secho(f"Copied temporary spectrals folder to '{tmp_new_specs_path}'.", fg="yellow")
-            else:
-                shutil.copytree(tmp_old_specs_path, tmp_new_specs_path, dirs_exist_ok=True)
-                click.secho(f"Copied temporary spectrals folder to '{tmp_new_specs_path}'.", fg="yellow")
-
-            if cfg.upload.formatting.remove_source_dir:
-                shutil.rmtree(tmp_old_specs_path)
-
     return new_path
 
 

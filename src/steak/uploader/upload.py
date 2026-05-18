@@ -11,9 +11,6 @@ from steak.common import UploadFiles, str_to_int_if_int
 from steak.constants import ARTIST_IMPORTANCES
 from steak.sources import SOURCE_ICONS
 from steak.tagger.sources import METASOURCES
-from steak.uploader.spectrals import (
-    make_spectral_bbcode,
-)
 
 if TYPE_CHECKING:
     from steak.trackers.base import BaseGazelleApi
@@ -27,10 +24,6 @@ async def prepare_and_upload(
     cover_url: str | None,
     track_data: dict[str, Any],
     hybrid: bool,
-    lossy_master: bool,
-    spectral_urls: dict[int, list[str]] | None,
-    spectral_ids: dict[int, str] | None,
-    lossy_comment: str | None,
     request_id: int | str | None,
     source_url: str | None = None,
     override_description: str | None = None,
@@ -45,10 +38,6 @@ async def prepare_and_upload(
         cover_url: Cover image URL.
         track_data: Track information.
         hybrid: Whether this is a hybrid release.
-        lossy_master: Whether this is lossy mastered.
-        spectral_urls: Spectral image URLs.
-        spectral_ids: Spectral IDs.
-        lossy_comment: Lossy approval comment.
         request_id: Request ID to fill.
         source_url: Source URL.
         override_description: Override torrent description.
@@ -67,9 +56,6 @@ async def prepare_and_upload(
             track_data,
             hybrid,
             cover_url,
-            spectral_urls,
-            spectral_ids,
-            lossy_comment,
             request_id,
             source_url=source_url,
         )
@@ -81,9 +67,6 @@ async def prepare_and_upload(
             metadata,
             track_data,
             hybrid,
-            spectral_urls,
-            spectral_ids,
-            lossy_comment,
             request_id,
             source_url=source_url,
             override_description=override_description,
@@ -121,9 +104,6 @@ def compile_data_new_group(
     track_data: dict[str, Any],
     hybrid: bool,
     cover_url: str | None,
-    spectral_urls: dict[int, list[str]] | None,
-    spectral_ids: dict[int, str] | None,
-    lossy_comment: str | None,
     request_id: int | str | None = None,
     source_url: str | None = None,
 ) -> dict[str, Any]:
@@ -136,9 +116,6 @@ def compile_data_new_group(
         track_data: Track information.
         hybrid: Whether this is a hybrid release.
         cover_url: Cover image URL.
-        spectral_urls: Spectral image URLs.
-        spectral_ids: Spectral IDs.
-        lossy_comment: Lossy approval comment.
         request_id: Request ID to fill.
         source_url: Source URL.
 
@@ -169,9 +146,7 @@ def compile_data_new_group(
         "tags": metadata["tags"],
         "image": cover_url,
         "album_desc": generate_description(track_data, metadata),
-        "release_desc": generate_t_description(
-            metadata, track_data, hybrid, metadata["urls"], spectral_urls, spectral_ids, lossy_comment, source_url
-        ),
+        "release_desc": generate_t_description(metadata, track_data, hybrid, metadata["urls"], source_url),
         "requestid": request_id,
     }
 
@@ -183,9 +158,6 @@ def compile_data_existing_group(
     metadata: dict[str, Any],
     track_data: dict[str, Any],
     hybrid: bool,
-    spectral_urls: dict[int, list[str]] | None,
-    spectral_ids: dict[int, str] | None,
-    lossy_comment: str | None,
     request_id: int | str | None,
     source_url: str | None = None,
     override_description: str | None = None,
@@ -199,9 +171,6 @@ def compile_data_existing_group(
         metadata: Release metadata.
         track_data: Track information.
         hybrid: Whether this is a hybrid release.
-        spectral_urls: Spectral image URLs.
-        spectral_ids: Spectral IDs.
-        lossy_comment: Lossy approval comment.
         request_id: Request ID to fill.
         source_url: Source URL.
         override_description: Override torrent description.
@@ -226,9 +195,7 @@ def compile_data_existing_group(
         "media": metadata["source"],
         "release_desc": override_description
         if override_description
-        else generate_t_description(
-            metadata, track_data, hybrid, metadata["urls"], spectral_urls, spectral_ids, lossy_comment, source_url
-        ),
+        else generate_t_description(metadata, track_data, hybrid, metadata["urls"], source_url),
         "requestid": request_id,
     }
 
@@ -357,28 +324,20 @@ def generate_t_description(
     track_data: dict[str, Any],
     hybrid: bool,
     metadata_urls: list[str],
-    spectral_urls: dict[int, list[str]] | None,
-    spectral_ids: dict[int, str] | None,
-    lossy_comment: str | None,
     source_url: str | None,
 ) -> str:
-    """Generate torrent description with spectrals and file info.
+    """Generate torrent description with file info.
 
     Args:
         metadata: Release metadata.
         track_data: Track information.
         hybrid: Whether this is a hybrid release.
         metadata_urls: Metadata source URLs.
-        spectral_urls: Spectral image URLs.
-        spectral_ids: Spectral IDs.
-        lossy_comment: Lossy approval comment.
         source_url: Source URL.
 
     Returns:
         BBCode description string.
     """
-    spectrals = make_spectral_bbcode(spectral_ids, spectral_urls) if spectral_urls else ""
-
     if not hybrid:
         track = next(iter(track_data.values()))
         sample_rate = track["sample rate"] / 1000
@@ -404,12 +363,6 @@ def generate_t_description(
             tracklist += f"{os.path.splitext(filename)[0]} [i]({mins}:{secs:02d})[/i]{bitrate}{hybrid_info}\n"
         tracklist += "\n"
 
-    lossy_notes = (
-        f"[u]Lossy Notes:[/u]\n{lossy_comment}\n\n"
-        if lossy_comment and cfg.upload.compression.lma_comment_in_t_desc
-        else ""
-    )
-
     source = ""
     if source_url is not None:
         for name, src in METASOURCES.items():
@@ -428,7 +381,7 @@ def generate_t_description(
     more_info_links = generate_source_links(metadata_urls, source_url) if metadata_urls else ""
     more_info = f"[b]More info:[/b] {more_info_links}\n" if more_info_links else ""
 
-    return f"{spectrals}{encode_specifics}{release_date}{tracklist}{lossy_notes}{source}{more_info}".rstrip()
+    return f"{encode_specifics}{release_date}{tracklist}{source}{more_info}".rstrip()
 
 
 def generate_source_links(metadata_urls: list[str], source_url: str | None = None) -> str:

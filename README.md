@@ -1,6 +1,6 @@
 # smoked-steak
 
-A simple tool to take the work out of uploading on Gazelle-based trackers. It generates spectrals, gathers metadata, allows re-tagging/renaming files, and automates the upload process.
+A simple tool to take the work out of uploading on Gazelle-based trackers. It gathers metadata, allows re-tagging/renaming files, and automates the upload process.
 
 ## 🌟 Features  
 
@@ -9,9 +9,6 @@ A simple tool to take the work out of uploading on Gazelle-based trackers. It ge
 - **Upconvert Detection** – Checks 24-bit flac files for potential upconverts.
 - **MQA Detection** – Checks files for common MQA markers.
 - **Duplicate Upload Detection** – Prevents redundant uploads.  
-- **Spectral Analysis** – Generates, compresses, and verifies spectrals, exposed via a web interface.  
-- **Spectral Upload** – Can generate spectrals for an existing upload (based on local files), and update the release description.  
-- **Lossy Master Report Generation** – Supports lossy master reports during upload.
 - **Metadata Retrieval** – Fetches metadata from:
   - Apple Music, Bandcamp, Beatport, Deezer, Discogs, MusicBrainz, Qobuz, Tidal.
 - **File Management** –  
@@ -259,7 +256,7 @@ smoked-steak uses distinct terminal colors for different types of messages:
 * Magenta – User prompts
 
 ### 🔧 CLI Mode
-smoked-steak runs in CLI mode, except for spectral visualization, which launches a web server. Quick start usage instructions can be found on the [Wiki Usage page](https://github.com/YOUR_GITHUB_USERNAME/smoked-steak/wiki#usage).
+smoked-steak runs in CLI mode. Quick start usage instructions can be found on the [Wiki Usage page](https://github.com/YOUR_GITHUB_USERNAME/smoked-steak/wiki#usage).
 
 The examples below show how to run smoked-steak directly. If you're using Docker, you'll need to adjust them accordingly, but the underlying principles remain the same.
 
@@ -284,9 +281,6 @@ smoked-steak up /data/path/to/album -s WEB
 ```
 
 You can get help directly from the CLI by appending --help to any command. This is especially useful for the up command which has a lot of possible options.
-
-### 🌐 Spectral Web Interface
-Spectrals are viewable via a built-in web server. By default, access it at: http://localhost:55110/spectrals
 
 ## 🔄 Updating
 

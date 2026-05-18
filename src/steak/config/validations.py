@@ -25,23 +25,20 @@ class Directory(BaseStruct):
 
 
 ImgUploaderLiteral = Literal["ptpimg", "ptscreens", "oeimg", "catbox", "imgbb", "imgbox"]
-SpectralSelectionLiteral = Literal["*", "+", "0"]
 
 
 class ImageUploader(BaseStruct):
     image_uploader: ImgUploaderLiteral = "catbox"
     cover_uploader: ImgUploaderLiteral = "catbox"
-    specs_uploader: ImgUploaderLiteral = "catbox"
     ptpimg_key: str | None = None
     ptscreens_key: str | None = None
     oeimg_key: str | None = None
     imgbb_key: str | None = None
     remove_auto_downloaded_cover_image: bool = False
     auto_compress_cover: bool = False
-    default_spectral_ids: SpectralSelectionLiteral | None = None
 
     def __post_init__(self):
-        uploader_selections = set({self.image_uploader, self.cover_uploader, self.specs_uploader})
+        uploader_selections = {self.image_uploader, self.cover_uploader}
         if ("ptpimg" in uploader_selections) and self.ptpimg_key is None:
             raise ValueError("ptpimg key not specified")
         if "ptscreens" in uploader_selections and self.ptscreens_key is None:
@@ -161,25 +158,6 @@ class UploadDescription(BaseStruct):
     empty_track_comment_tag: bool = True
 
 
-class UploadWebInterface(BaseStruct):
-    host: str = "0.0.0.0"
-    port: int = 55110
-    display_host: str = "localhost"
-    static_root_url: str = "/static"
-
-    def __post_init__(self):
-        if self.port < 1 or self.port > 65535:
-            raise ValueError("Port number is invalid")
-
-    @property
-    def effective_host(self) -> str:
-        """Host used for generating user-facing URLs.
-
-        Falls back to ``host`` when ``display_host`` is not set.
-        """
-        return self.display_host if self.display_host else self.host
-
-
 class UploadRequests(BaseStruct):
     always_ask_for_request_fill: bool = False
     check_recent_uploads: bool = True
@@ -189,9 +167,6 @@ class UploadRequests(BaseStruct):
 
 class UploadCompression(BaseStruct):
     flac_compression_level: Annotated[int, msgspec.Meta(ge=0, le=8)] = 8
-    compress_spectrals: bool = True
-    # TODO: this probably should be in description
-    lma_comment_in_t_desc: bool = False
     use_upc_as_catno: bool = True
 
 
@@ -218,8 +193,6 @@ class Upload(BaseStruct):
     # Can be "nano", "vim", "emacs", or any command available in PATH
     default_editor: str | None = None
 
-    native_spectrals_viewer: bool = False
-    feh_fullscreen: bool = True
     prompt_puddletag: bool = False
     # must be within 0-1
     log_dupe_tolerance: Annotated[float, msgspec.Meta(ge=0.0, le=1.0)] = 0.5
@@ -240,7 +213,6 @@ class Upload(BaseStruct):
     search: UploadSearch = msgspec.field(default_factory=UploadSearch)
     formatting: UploadFormatting = msgspec.field(default_factory=UploadFormatting)
     description: UploadDescription = msgspec.field(default_factory=UploadDescription)
-    web_interface: UploadWebInterface = msgspec.field(default_factory=UploadWebInterface)
     requests: UploadRequests = msgspec.field(default_factory=UploadRequests)
     compression: UploadCompression = msgspec.field(default_factory=UploadCompression)
     ai_review: UploadAiReview = msgspec.field(default_factory=UploadAiReview)

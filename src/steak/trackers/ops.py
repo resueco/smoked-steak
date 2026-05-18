@@ -6,9 +6,6 @@ from bs4 import BeautifulSoup
 from steak import cfg
 from steak.common import UploadFiles
 from steak.constants import ARTIST_IMPORTANCES
-from steak.errors import (
-    RequestError,
-)
 from steak.trackers.base import BaseGazelleApi
 
 
@@ -115,36 +112,3 @@ class OpsApi(BaseGazelleApi):
         if not ids:
             raise TypeError("Could not parse torrent/group id from group page: no permalink ids found")
         return max(ids)
-
-    async def report_lossy_master(self, torrent_id: int, comment: str, source: str) -> bool:
-        """Report torrent for lossy master approval (OPS-specific).
-
-        OPS only uses 'lossyapproval' type, not 'lossywebapproval'.
-
-        Args:
-            torrent_id: The torrent ID to report.
-            comment: The report comment.
-            source: Media source.
-
-        Returns:
-            True if report was successful.
-
-        Raises:
-            RequestError: If the report fails.
-        """
-        url = self.base_url + "/reportsv2.php"
-        # OPS only uses lossyapproval, not lossywebapproval
-        data = {
-            "auth": self.authkey,
-            "torrentid": torrent_id,
-            "categoryid": 1,
-            "type": "lossyapproval",
-            "extra": comment,
-            "submit": True,
-        }
-        resp = await self._request("POST", url, params={"action": "takereport"}, data=data)
-        if "torrents.php" in resp.url:
-            return True
-        raise RequestError(
-            f"Failed to report torrent for lossy master: unexpected redirect to {resp.url} (status {resp.status})"
-        )

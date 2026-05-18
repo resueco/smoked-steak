@@ -38,9 +38,6 @@ def test_generate_t_description_omits_empty_more_info_after_source_filter() -> N
             },
             hybrid=False,
             metadata_urls=[source_url],
-            spectral_urls=None,
-            spectral_ids=None,
-            lossy_comment=None,
             source_url=source_url,
         )
     finally:

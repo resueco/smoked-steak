@@ -15,10 +15,7 @@ def print_preassumptions(
     path: str,
     group_id: int | None,
     source: str | None,
-    lossy: bool | None,
-    spectrals: tuple[int, ...],
     encoding: str | None,
-    spectrals_after: bool,
 ) -> None:
     """Print what all the passed CLI options will do.
 
@@ -27,10 +24,7 @@ def print_preassumptions(
         path: Path to the album folder.
         group_id: Optional existing group ID.
         source: Media source.
-        lossy: Whether files are lossy mastered.
-        spectrals: Track numbers for spectrals.
         encoding: Audio encoding tuple.
-        spectrals_after: Check spectrals after upload.
     """
     click.secho(f"\nProcessing {path}", fg="cyan", bold=True)
     second = []
@@ -38,26 +32,8 @@ def print_preassumptions(
         second.append(f"from {source}")
     if encoding:
         second.append(f"as {encoding}")
-    if lossy is not None:
-        second.append(f"with lossy master status as {lossy}")
     if second:
         click.secho(f"Uploading {' '.join(second)}.", fg="yellow")
-    if spectrals:
-        if spectrals == (0,):
-            click.secho("Uploading no spectrals.", fg="yellow")
-        else:
-            click.secho(
-                f"Uploading spectrals {', '.join(str(s) for s in spectrals)}.",
-                fg="yellow",
-            )
-    if spectrals_after:
-        click.secho(
-            "Assessing spectrals after upload.",
-            fg="yellow",
-        )
-
-    if lossy and not spectrals:
-        raise UploadError("\nYou cannot report a torrent for lossy master without spectrals.")
 
 
 async def confirm_group_upload(gazelle_site: "BaseGazelleApi", group_id: int, source: str | None) -> None:

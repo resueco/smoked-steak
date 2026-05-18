@@ -16,8 +16,7 @@ download_directory = '.music'
 # You still need to have it set even if using direct torrent injection with qbittorrent
 dottorrents_dir = '.torrents'
 
-# Set the TMP dir where spectrals will be generated. If unset, the spectrals will be generated in the albums folders
-# and be cleaned up up before upload. Useful if you want to generate the spectral on a fast disk for instance.
+# Set the TMP dir for temporary work files.
 # tmp_dir = 'path to tmp dir'
 
 # If True, clean the temporary directory at startup to prevent leftover files from accumulating
@@ -32,11 +31,6 @@ dottorrents_dir = '.torrents'
 [image]
 image_uploader = "ptpimg"
 cover_uploader = "ptpimg"
-specs_uploader = "ptpimg"
-
-# Default selection for "What spectral IDs would you like to upload?" prompt.
-# "*" = all, "+" = randomized selection, "0" = none. Leave unset to use context-based default.
-# default_spectral_ids = "*"
 
 # ptpimg API key (log into ptpimg, developpers tools, go to the Elements tab, and search for 'api_key')
 ptpimg_key = 'api_key'
@@ -148,8 +142,6 @@ session = 'get-from-site-cookie'
 # default_editor = ""
 
 # # miscellaneous settings
-# native_spectrals_viewer = false
-# feh_fullscreen = true
 # prompt_puddletag = false
 # log_dupe_tolerance = 0.5
 # windows_use_recycle_bin = true
@@ -202,17 +194,6 @@ session = 'get-from-site-cookie'
 # fullwidth_replacements = false
 # empty_track_comment_tag = true
 
-# [upload.web_interface]
-# # web interface settings
-# host = "0.0.0.0"
-# port = 55110
-
-# Host used in generated URLs (e.g. spectral viewer links).
-# Set to "" to use the value of "host".
-# display_host = "localhost"
-
-# static_root_url = "/static"
-
 # [upload.requests]
 # # request handling
 # always_ask_for_request_fill = false
@@ -223,8 +204,6 @@ session = 'get-from-site-cookie'
 # [upload.compression]
 # # compression settings
 # flac_compression_level = 8
-# compress_spectrals = true
-# lma_comment_in_t_desc = false
 # use_upc_as_catno = true
 
 # [upload.ai_review]

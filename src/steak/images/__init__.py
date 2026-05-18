@@ -88,11 +88,6 @@ async def upload_images(filepaths: tuple, image_host) -> list[str]:
         raise ImageUploadFailed("Failed to upload image") from error
 
 
-def chunker(seq, size=4):
-    for pos in range(0, len(seq), size):
-        yield seq[pos : pos + size]
-
-
 async def upload_cover(cover_path: str | None) -> str | None:
     """Upload cover image to the configured image host.
 
@@ -114,89 +109,3 @@ async def upload_cover(cover_path: str | None) -> str | None:
     except (ImageUploadFailed, ValueError) as error:
         click.secho(f" failed :( {error}", fg="red")
         return None
-
-
-async def upload_spectrals(spectrals, uploader=None, successful=None) -> dict:
-    """Upload spectral images to image host.
-
-    Args:
-        spectrals: List of (spec_id, filename, spectral_paths) tuples.
-        uploader: The image host module to use.
-        successful: Set of already successful spec_ids.
-
-    Returns:
-        Dictionary mapping spec_id to list of URLs.
-    """
-    if uploader is None:
-        uploader = HOSTS[cfg.image.specs_uploader]
-
-    response = {}
-    successful = successful or set()
-    one_failed = False
-    uploader_instance = uploader.ImageUploader()
-
-    for specs_block in chunker(spectrals):
-        tasks = [
-            _spectrals_handler(sid, filename, sp, uploader_instance)
-            for sid, filename, sp in specs_block
-            if sid not in successful
-        ]
-        for sid, urls in await asyncio.gather(*tasks):
-            if urls:
-                response[sid] = urls
-                successful.add(sid)
-            else:
-                one_failed = True
-        if one_failed:
-            retry_result = await _handle_failed_spectrals(spectrals, successful)
-            return {**response, **retry_result}
-    return response
-
-
-async def _handle_failed_spectrals(spectrals, successful) -> dict:
-    """Handle failed spectral uploads by prompting for a new host.
-
-    Args:
-        spectrals: List of spectral tuples.
-        successful: Set of already successful spec_ids.
-
-    Returns:
-        Dictionary of uploaded URLs.
-    """
-    while True:
-        host_input: str = await click.prompt(
-            click.style(
-                "Some spectrals failed to upload. Which image host would you like to retry "
-                f"with? (Options: {', '.join(HOSTS.keys())})",
-                fg="magenta",
-                bold=True,
-            ),
-            default="ptpimg",
-        )
-        host = host_input.lower()
-        if host not in HOSTS:
-            click.secho(f"{host} is an invalid image host. Please choose another one.", fg="red")
-        else:
-            return await upload_spectrals(spectrals, uploader=HOSTS[host], successful=successful)
-
-
-async def _spectrals_handler(spec_id, filename, spectral_paths, uploader_instance):
-    """Handle uploading spectrals for a single file.
-
-    Args:
-        spec_id: The spectral ID.
-        filename: The audio filename.
-        spectral_paths: List of spectral image paths.
-        uploader_instance: The image uploader instance.
-
-    Returns:
-        Tuple of (spec_id, list of URLs or None).
-    """
-    try:
-        click.secho(f"Uploading spectrals for {filename}...", fg="yellow")
-        tasks = [uploader_instance.upload_file(f) for f in spectral_paths]
-        results = await asyncio.gather(*tasks)
-        return spec_id, [url for url, _ in results]
-    except ImageUploadFailed as e:
-        click.secho(f"Failed to upload spectrals for {filename}: {e}", fg="red")
-        return spec_id, None
