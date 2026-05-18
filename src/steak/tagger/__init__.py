@@ -11,17 +11,7 @@ from steak.constants import (
     TAG_ENCODINGS,
 )
 from steak.errors import InvalidMetadataError, ScrapeError
-from steak.tagger.ai_review import review_metadata_with_ai
-from steak.tagger.audio_info import gather_audio_info
-from steak.tagger.cover import download_cover_if_nonexistent
-from steak.tagger.foldername import rename_folder
-from steak.tagger.folderstructure import check_folder_structure
-from steak.tagger.metadata import get_metadata
-from steak.tagger.pre_data import construct_rls_data
-from steak.tagger.retagger import rename_files, tag_files
-from steak.tagger.review import review_metadata
 from steak.tagger.sources import run_metadata
-from steak.tagger.tags import check_tags, gather_tags, standardize_tags
 
 
 def validate_source(ctx, param, value):
@@ -55,90 +45,6 @@ def validate_encoding(ctx, param, value):
         return TAG_ENCODINGS[value.upper()]
     except KeyError:
         raise click.BadParameter(f"{value} is not a valid encoding.") from None
-
-
-@commandgroup.command()
-@click.argument("path", type=click.Path(exists=True, file_okay=False, resolve_path=True))
-@click.option(
-    "--source",
-    "-s",
-    type=click.STRING,
-    callback=validate_source,
-    help=f"Source of files ({'/'.join(SOURCES.values())})",
-)
-@click.option(
-    "--encoding",
-    "-e",
-    type=click.STRING,
-    callback=validate_encoding,
-    help="You must specify one of the following encodings if files aren't lossless: " + ", ".join(TAG_ENCODINGS.keys()),
-)
-@click.option(
-    "--overwrite",
-    "-ow",
-    is_flag=True,
-    help="Whether or not to use the original metadata.",
-)
-@click.option(
-    "--auto-rename",
-    "-n",
-    is_flag=True,
-    help="Rename files and folders automatically",
-)
-@click.option(
-    "--skip-initial-review",
-    is_flag=True,
-    help="Skip the initial manual metadata review before AI review.",
-)
-@click.option(
-    "--apply-ai-suggestions",
-    is_flag=True,
-    help="Automatically apply AI review suggestions when AI review is enabled.",
-)
-async def tag(
-    path: str,
-    source: str,
-    encoding: str | None,
-    overwrite: bool,
-    auto_rename: bool,
-    skip_initial_review: bool,
-    apply_ai_suggestions: bool,
-) -> None:
-    """Interactively tag an album.
-
-    Args:
-        path: Path to the album folder.
-        source: Media source.
-        encoding: Audio encoding string or None if not specified.
-        overwrite: Whether to overwrite metadata.
-        auto_rename: Whether to auto-rename files.
-        skip_initial_review: Skip the first manual metadata review before AI review.
-        apply_ai_suggestions: Automatically apply AI review suggestions when present.
-    """
-    click.secho(f"\nProcessing {path}", fg="cyan", bold=True)
-    standardize_tags(path)
-    tags = gather_tags(path)
-    audio_info = gather_audio_info(path)
-    rls_data = construct_rls_data(tags, audio_info, source, encoding, overwrite=overwrite)
-
-    metadata, source_url = await get_metadata(path, tags, rls_data)
-    metadata = await review_metadata_with_ai(
-        metadata,
-        rls_data,
-        source_url,
-        metadata_validator_base,
-        review_metadata,
-        skip_initial_review=skip_initial_review,
-        apply_suggestions=apply_ai_suggestions,
-    )
-    tag_files(path, tags, metadata, auto_rename)
-
-    await download_cover_if_nonexistent(path, metadata["cover"])
-    tags = await check_tags(path)
-    path = rename_folder(path, metadata, auto_rename)
-    rename_files(path, tags, metadata, auto_rename)
-    await check_folder_structure(path, scene=False)
-    click.secho(f"\nProcessed {path}", fg="cyan", bold=True)
 
 
 @commandgroup.command()

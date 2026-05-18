@@ -42,13 +42,11 @@ from steak.tagger.audio_info import (
     recompress_path,
 )
 from steak.tagger.cover import compress_pictures, download_cover_if_nonexistent
-from steak.tagger.foldername import rename_folder
 from steak.tagger.folderstructure import check_folder_structure
 from steak.tagger.metadata import get_metadata
 from steak.tagger.pre_data import construct_rls_data
-from steak.tagger.retagger import rename_files, tag_files
 from steak.tagger.review import review_metadata
-from steak.tagger.tags import check_tags, gather_tags, standardize_tags
+from steak.tagger.tags import gather_tags
 from steak.uploader.dupe_checker import (
     check_existing_group,
     dupe_check_recent_torrents,
@@ -271,8 +269,6 @@ async def upload(
         source = await _prompt_source()
     audio_info = gather_audio_info(path)
     hybrid = check_hybrid(audio_info)
-    if not scene:
-        standardize_tags(path)
     tags = gather_tags(path)
     rls_data = construct_rls_data(
         tags,
@@ -497,8 +493,9 @@ async def edit_metadata(
 ) -> tuple[str, dict[str, Any], dict[str, "TagFile"], dict[str, dict[str, Any]]]:
     """Edit release metadata in an interactive loop until the user confirms.
 
-    Repeatedly prompts the user to review and edit metadata, then applies tags,
-    renames files and folder, checks integrity, and confirms readiness for upload.
+    Repeatedly prompts the user to review and edit metadata, then checks the
+    folder and confirms readiness for upload. This upload path does not retag
+    files or rename files/folders.
 
     Args:
         path: Path to the release directory.
@@ -507,7 +504,7 @@ async def edit_metadata(
         source: Source string (e.g. "WEB", "CD").
         rls_data: Release data dictionary from pre_data construction.
         recompress: Whether to recompress audio files after tagging.
-        auto_rename: Whether to automatically rename files and folder.
+        auto_rename: Kept for CLI compatibility; upload no longer renames files or folders.
         skip_integrity_check: Whether to skip the integrity check step.
         essential_only: If True, only essential extensions are allowed.
         skip_initial_review: Skip the first manual metadata review before AI review.
@@ -529,15 +526,8 @@ async def edit_metadata(
             skip_initial_review=skip_initial_review,
             apply_suggestions=apply_ai_suggestions,
         )
-        if not metadata["scene"]:
-            tag_files(path, tags, metadata, auto_rename)
-
-        tags = await check_tags(path)
         if not metadata["scene"] and recompress:
             await recompress_path(path)
-        path = rename_folder(path, metadata, auto_rename)
-        if not metadata["scene"]:
-            rename_files(path, tags, metadata, auto_rename, source)
         await check_folder_structure(path, metadata["scene"], essential_only=essential_only)
 
         if not skip_integrity_check:
