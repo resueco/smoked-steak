@@ -26,8 +26,9 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/opt/uv-cache \
     uv sync --locked --no-install-project --no-editable --no-dev
 
-# Copy source code
-COPY . .
+# Copy source code and package metadata
+COPY README.md ./
+COPY src ./src
 
 # Install the project in non-editable mode for production
 RUN --mount=type=cache,target=/opt/uv-cache \
@@ -56,9 +57,6 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 # Ensure app directory and its contents are writable by any user
 RUN mkdir -p /app/.music /app/.torrents && chmod -R 777 /app
-
-# Expose port for web interface
-EXPOSE 55110
 
 # Set the entrypoint to run the smoked-steak CLI
 ENTRYPOINT ["smoked-steak"]
