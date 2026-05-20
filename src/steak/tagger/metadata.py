@@ -307,6 +307,7 @@ def keep_upload_artist_roles(metadata):
 
 
 def clean_metadata(metadata):
+    metadata = backfill_years(metadata)
     for disc, tracks in metadata["tracks"].items():
         for num, track in tracks.items():
             for artist, importance in copy(track["artists"]):
@@ -320,4 +321,13 @@ def clean_metadata(metadata):
     if metadata["catno"] and metadata["catno"].replace(" ", "") == str(metadata["upc"]):
         metadata["catno"] = None
     metadata = keep_upload_artist_roles(metadata)
+    return metadata
+
+
+def backfill_years(metadata):
+    """Keep release year and group year populated together."""
+    if not metadata["year"] and metadata["group_year"]:
+        metadata["year"] = metadata["group_year"]
+    if not metadata["group_year"] and metadata["year"]:
+        metadata["group_year"] = metadata["year"]
     return metadata

@@ -214,3 +214,25 @@ def test_clean_metadata_promotes_first_guest_when_track_has_no_main_artist() -> 
 
     assert cleaned["artists"] == [("Composer Person", "main"), ("Remixer Person", "guest")]
     assert cleaned["tracks"]["1"]["1"]["artists"] == [("Composer Person", "main"), ("Remixer Person", "guest")]
+
+
+def test_clean_metadata_fills_missing_year_from_group_year() -> None:
+    metadata = make_release_data()
+    metadata["group_year"] = "2026"
+    metadata["year"] = None
+
+    cleaned = metadata_mod.clean_metadata(metadata)
+
+    assert cleaned["group_year"] == "2026"
+    assert cleaned["year"] == "2026"
+
+
+def test_clean_metadata_fills_missing_group_year_from_year() -> None:
+    metadata = make_release_data()
+    metadata["group_year"] = None
+    metadata["year"] = "2026"
+
+    cleaned = metadata_mod.clean_metadata(metadata)
+
+    assert cleaned["group_year"] == "2026"
+    assert cleaned["year"] == "2026"
