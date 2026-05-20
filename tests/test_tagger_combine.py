@@ -85,6 +85,7 @@ def test_preferred_source_title_overrides_stale_local_album_title():
     )
 
     assert combined["title"] == "Dirty & Funky EP"
+    assert combined["genres"] == ["Electronic"]
 
 
 def test_combine_tracks_keeps_all_tracks_when_updating_track_numbers():

@@ -64,8 +64,6 @@ def combine_metadatas(*metadatas, base=None, source_url=None):
                 from_preferred_source = False
                 continue
 
-            base["genres"] += metadata["genres"]
-
             # The first selected metadata source should be able to replace stale
             # embedded/local title data. Otherwise WEB uploads can preserve a
             # composite ALBUM tag from the source files even after selecting a
