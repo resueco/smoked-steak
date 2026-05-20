@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 from copy import copy
 from itertools import chain, islice
 from typing import Any
@@ -308,6 +309,7 @@ def keep_upload_artist_roles(metadata):
 
 def clean_metadata(metadata):
     metadata = backfill_years(metadata)
+    metadata = normalize_dk_label(metadata)
     for disc, tracks in metadata["tracks"].items():
         for num, track in tracks.items():
             for artist, importance in copy(track["artists"]):
@@ -330,4 +332,11 @@ def backfill_years(metadata):
         metadata["year"] = metadata["group_year"]
     if not metadata["group_year"] and metadata["year"]:
         metadata["group_year"] = metadata["year"]
+    return metadata
+
+
+def normalize_dk_label(metadata):
+    """Treat DK distributor labels as self-released."""
+    if metadata["label"] and re.search(r"\bdk\b", metadata["label"], flags=re.IGNORECASE):
+        metadata["label"] = "Self-Released"
     return metadata

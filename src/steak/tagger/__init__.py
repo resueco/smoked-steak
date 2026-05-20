@@ -11,6 +11,7 @@ from steak.constants import (
     TAG_ENCODINGS,
 )
 from steak.errors import InvalidMetadataError, ScrapeError
+from steak.tagger.metadata import normalize_dk_label
 from steak.tagger.sources import run_metadata
 
 
@@ -68,6 +69,7 @@ async def meta(url: str) -> None:
 
 def metadata_validator_base(metadata):
     """Validate that the provided metadata is not an issue."""
+    metadata = normalize_dk_label(metadata)
     artist_importances = set(i for _, i in metadata["artists"])
     if "main" not in artist_importances:
         raise InvalidMetadataError("You must have at least one main artist.")
@@ -94,11 +96,6 @@ def metadata_validator_base(metadata):
         raise InvalidMetadataError(f"{metadata['source']} is not a valid source.")
     if metadata["label"] and (len(metadata["label"]) < 2 or len(metadata["label"]) > 80):
         raise InvalidMetadataError("Label must be over 2 and under 80 characters.")
-    if metadata["label"] is not None and "records dk" in metadata["label"].lower():
-        raise InvalidMetadataError(
-            "Records DK is not a label. It's a platform for releasing albums. "
-            "Please change the label (e.g Self Released)"
-        )
     if metadata["catno"] and (len(metadata["catno"]) < 2 or len(metadata["catno"]) > 80):
         raise InvalidMetadataError("Catno must be over 2 and under 80 characters.")
 

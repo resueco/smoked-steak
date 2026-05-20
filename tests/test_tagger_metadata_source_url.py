@@ -4,6 +4,7 @@ from copy import deepcopy
 from steak import cfg
 from steak.sources.qobuz import QobuzBase
 from steak.tagger import metadata as metadata_mod
+from steak.tagger import metadata_validator_base
 
 
 def make_release_data() -> dict:
@@ -236,3 +237,22 @@ def test_clean_metadata_fills_missing_group_year_from_year() -> None:
 
     assert cleaned["group_year"] == "2026"
     assert cleaned["year"] == "2026"
+
+
+def test_clean_metadata_normalizes_dk_label_to_self_released() -> None:
+    metadata = make_release_data()
+    metadata["label"] = "Records DK"
+
+    cleaned = metadata_mod.clean_metadata(metadata)
+
+    assert cleaned["label"] == "Self-Released"
+
+
+def test_metadata_validator_normalizes_dk_label_to_self_released() -> None:
+    metadata = make_release_data()
+    metadata["label"] = "Records DK"
+    metadata["rls_type"] = "Album"
+
+    validated = metadata_validator_base(metadata)
+
+    assert validated["label"] == "Self-Released"
