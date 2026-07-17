@@ -1,39 +1,46 @@
 # smoked-steak
 
-A simple tool to take the work out of uploading on Gazelle-based trackers. It gathers metadata, allows re-tagging/renaming files, and automates the upload process.
+Smoked Steak is an interactive command-line tool for checking, describing, and uploading music releases to
+Gazelle-based trackers. It supports RED, OPS, and DIC and can continue seeding an upload locally or on remote
+seedboxes.
 
-## 🌟 Features  
+The upload workflow reads tags from the source files and combines them with online metadata for the tracker
+submission. It does **not** retag audio files or rename release folders as part of metadata review.
 
-- **Interactive Uploading** – Supports **multiple trackers** (RED / OPS / DIC).
-- **Log Checking** – Calculates log scores, verifies log checksum integrity, and validates log-to-FLAC file matching.
-- **Upconvert Detection** – Checks 24-bit flac files for potential upconverts.
-- **MQA Detection** – Checks files for common MQA markers.
-- **Duplicate Upload Detection** – Prevents redundant uploads.  
-- **Metadata Retrieval** – Fetches metadata from:
-  - Apple Music, Bandcamp, Beatport, Deezer, Discogs, MusicBrainz, Qobuz, Tidal.
-- **File Management** –  
-  - Retags and renames files to standard formats (based on metadata).
-  - Checks file integrity and sanitizes if needed.  
-- **Request Filling** – Scans for matching requests on trackers.
-- **Description generation** – Edition description generation (tracklist, sources, available streaming platforms, encoding details...).
-- **Down-convert and Transcode** – Can downconvert 24-bit flac files to 16-bit, and transcode to mp3.
-- **Multi-Format Upload** – Automatically transcodes and uploads multiple formats (FLAC 16-bit, MP3, etc.) in a single workflow.
-- **Torrent Client Injection** – Can inject generated torrent files into torrent clients (qBittorrent, Transmission, Deluge, ruTorrent).
-- **Remote Seeding** – Can transfer files to multiple remote locations via rclone and inject torrents into remote torrent clients for automatic seeding.
-- **Update Notifications** – Informs users when a new version is available.
+## 🌟 Features
 
-## 📥 Installation  
+- **Interactive, multi-tracker uploads** – Upload a release to RED, OPS, and DIC in one session.
+- **Metadata retrieval and review** – Combine metadata from Apple Music, Bandcamp, Beatport, Deezer, Discogs,
+  MusicBrainz, Qobuz, and Tidal, then review it before submission.
+- **Optional AI metadata review** – Research and verify album-level metadata through an OpenAI-compatible API.
+- **Audio and folder checks** – Validate FLAC/MP3 integrity, CD ripping logs and checksums, folder structure, MQA
+  markers, and possible 24-bit upconverts.
+- **Duplicate and request checks** – Find existing tracker groups, avoid duplicate editions, and identify requests
+  that the upload can fill.
+- **Descriptions and covers** – Generate BBCode tracklists, source links, encoding details, and upload cover art via
+  PTPIMG, PTScreens, OEImg, ImgBB, Catbox, ImgBox, Ra, or RED's internal image host.
+- **Multi-format uploads** – Downconvert high-resolution FLAC and create MP3 320/V0 editions, then upload the
+  selected formats to the same release group.
+- **Torrent creation and seeding** – Generate private torrents, copy or transfer releases with local paths or
+  rclone, and inject torrents into qBittorrent, Transmission, Deluge, or ruTorrent.
+- **Standalone utilities** – Search or inspect metadata, upload images, generate descriptions, recompress FLAC,
+  transcode audio, and run individual file checks.
+- **Update notifications** – Optionally report when a newer release is available.
 
-Manual installation instructions can be found on the [Wiki](https://github.com/YOUR_GITHUB_USERNAME/smoked-steak/wiki/Installation).
+## 📥 Installation
 
-### 🔹  Install smoked-steak 
-These steps use [`uv`](https://github.com/astral-sh/uv) for installing the *smoked-steak* package. [`pipx`](https://github.com/pypa/pipx) also works.
-Installing with pip is not recommended because uv (and pipx) manage python versions and isolate the *smoked-steak* installation from the system python installation.
+Manual installation instructions can be found on the
+[Wiki](https://github.com/resueco/smoked-steak/wiki/Installation).
+
+### 🔹 Install smoked-steak
+
+These steps use [`uv`](https://github.com/astral-sh/uv) to install the package. [`pipx`](https://github.com/pypa/pipx)
+also works. Both isolate Smoked Steak from the system Python installation.
 
 #### Linux
 1. Install system packages:
     ```bash
-    sudo apt install sox flac mp3val curl lame
+    sudo apt install git sox flac mp3val curl lame
     ```
 
 2. Install uv:
@@ -43,12 +50,13 @@ Installing with pip is not recommended because uv (and pipx) manage python versi
 
 3. Install smoked-steak package from github:
 	```bash
-	uv tool install git+https://github.com/YOUR_GITHUB_USERNAME/smoked-steak
+	uv tool install git+https://github.com/resueco/smoked-steak
 	```
 
 #### Windows
 1. Install required system packages using winget:
     ```powershell
+    winget install -e Git.Git
     winget install -e ChrisBagwell.SoX Xiph.FLAC LAME.LAME ring0.MP3val.WF
     ```
 
@@ -69,7 +77,7 @@ Installing with pip is not recommended because uv (and pipx) manage python versi
 
 4. Install smoked-steak package from github:
 	```powershell
-	uv tool install git+https://github.com/YOUR_GITHUB_USERNAME/smoked-steak
+	uv tool install git+https://github.com/resueco/smoked-steak
 	```
 
 #### macOS
@@ -80,7 +88,7 @@ Installing with pip is not recommended because uv (and pipx) manage python versi
 
 2. Install system packages using Homebrew:
     ```bash
-    brew install sox flac mp3val curl lame
+    brew install git sox flac mp3val curl lame
     ```
 
 3. Install uv:
@@ -90,10 +98,10 @@ Installing with pip is not recommended because uv (and pipx) manage python versi
 
 4. Install smoked-steak package from github:
 	```bash
-	uv tool install git+https://github.com/YOUR_GITHUB_USERNAME/smoked-steak
+	uv tool install git+https://github.com/resueco/smoked-steak
 	```
 
-### 🔹  Initial Setup
+### 🔹 Initial setup
 1. Run smoked-steak for the first time and follow the instructions to create a default configuration:
 	```
 	steak-user@smoked-steak:~$ smoked-steak
@@ -101,7 +109,9 @@ Installing with pip is not recommended because uv (and pipx) manage python versi
 	Do you want smoked-steak to create a default config file at /home/steak-user/.config/smoked-steak/config.toml? [y/N]:
 	```
 
-2. Edit the `config.toml` file with your preferred text editor to add your API keys, session cookies and update your preferences (see the [Configuration Wiki](https://github.com/YOUR_GITHUB_USERNAME/smoked-steak/wiki/Configuration)).
+2. Edit `config.toml` to add tracker sessions, API keys, existing download/torrent directories, and your preferred
+   image hosts. See the [configuration template](src/steak/data/config.default.toml) and
+   [Configuration Wiki](https://github.com/resueco/smoked-steak/wiki/Configuration).
 
 3. Use the `checkconf` command to verify that the connection to the trackers is working:
 
@@ -123,16 +133,17 @@ A Docker image is generated per release.
 
    ```bash
    # Stable release
-   docker pull ghcr.io/YOUR_GITHUB_USERNAME/smoked-steak:latest
+   docker pull ghcr.io/resueco/smoked-steak:latest
 
-   # Alpha (built on every push to master, equivalent to `uv tool install git+...`)
-   docker pull ghcr.io/YOUR_GITHUB_USERNAME/smoked-steak:alpha
+   # Development image
+   docker pull ghcr.io/resueco/smoked-steak:alpha
    ```
 
    > The examples below use the `latest` tag. Replace with `alpha` to use the latest development version.
 
-2. Copy the content of the file [`config.toml`](https://github.com/YOUR_GITHUB_USERNAME/smoked-steak/blob/master/src/steak/data/config.default.toml) to a location on your host server.
-   Edit the `config.toml` file with your preferred text editor to add your API keys, session cookies and update your preferences (see the [Configuration Wiki](https://github.com/YOUR_GITHUB_USERNAME/smoked-steak/wiki/Configuration)).
+2. Copy the [default configuration](https://github.com/resueco/smoked-steak/blob/main/src/steak/data/config.default.toml)
+   to `config.toml` on the host, then add your credentials, directories, and preferences. See the
+   [Configuration Wiki](https://github.com/resueco/smoked-steak/wiki/Configuration).
 
 3. Configure rclone if needed. The Docker Compose configuration expects an rclone configuration file. You can get the path to your rclone config file by running `rclone config file` on your host system.
 
@@ -149,7 +160,7 @@ A Docker image is generated per release.
    -v /path/to/your/config.toml/directory:/root/.config/smoked-steak/ \
    -v /path/to/your/generated/dottorrents:/app/.torrents \
    -v /get/this/from/"rclone config file":/root/.config/rclone/rclone.conf  # Optional: only if using rclone features \
-   ghcr.io/YOUR_GITHUB_USERNAME/smoked-steak:latest checkconf
+   ghcr.io/resueco/smoked-steak:latest checkconf
    ```
 
 2. **Upload**
@@ -161,7 +172,7 @@ A Docker image is generated per release.
    -v /path/to/your/config.toml/directory:/root/.config/smoked-steak/ \
    -v /path/to/your/generated/dottorrents:/app/.torrents \
    -v /get/this/from/"rclone config file":/root/.config/rclone/rclone.conf  # Optional: only if using rclone features \
-   ghcr.io/YOUR_GITHUB_USERNAME/smoked-steak:latest up "/app/.music/path/to/album" -s WEB
+   ghcr.io/resueco/smoked-steak:latest up "/app/.music/path/to/album" -s WEB
    ```
 
 ### 💡 Shell Alias (Optional)
@@ -174,7 +185,7 @@ alias smoked-steak='docker run --rm -it --network=host \
   -v /path/to/your/config.toml/directory:/root/.config/smoked-steak/ \
   -v /path/to/your/generated/dottorrents:/app/.torrents \
   -v /path/to/your/rclone.conf:/root/.config/rclone/rclone.conf \
-  ghcr.io/YOUR_GITHUB_USERNAME/smoked-steak:latest'
+  ghcr.io/resueco/smoked-steak:latest'
 ```
 
 Then use it just like a native install:
@@ -189,9 +200,9 @@ smoked-steak up "/app/.music/path/to/album" -s WEB
 
 ### ⚠️ Notes
 
-- **Permission Issues**  
-  The container currently **able to handle permissions** properly.  
-  If your torrent client is not run as root, or if new uploads are inaccessible, you may need to:
+- **Permission issues**
+  The image makes `/app` writable, but bind-mounted host directories still use host ownership and permissions.
+  If your torrent client cannot read new uploads, you may need to:
   - Manually adjust file/folder ownership (`chown`) or permissions (`chmod`)
   - Ensure the container and torrent client users are compatible
   - Optionally run containers with matching `--user` flags or add `umask` logic
@@ -202,14 +213,14 @@ smoked-steak up "/app/.music/path/to/album" -s WEB
       - PGID=100
      ```
 
-- **.torrent Directory Mapping**  
-  Depending on how you've set the `DOTTORRENTS_DIR` in your `config.toml`, you may need to map an additional directory for `.torrent` file output. Add:
+- **`.torrent` directory mapping**
+  Depending on `directory.dottorrents_dir` in `config.toml`, you may need an additional volume for torrent output:
 
   ```bash
   -v /your/host/torrent/output:/app/.torrents
   ```
 
-- **rclone Configuration**  
+- **rclone configuration**
   If you're using rclone features, make sure to map your rclone configuration file. This is optional and only needed if you plan to use rclone functionality. You can find your rclone config file location by running `rclone config file` on your host system:
 
   ```bash
@@ -225,7 +236,7 @@ If using Docker Compose, create a `docker-compose.yml` to define your volume map
 ```yaml
 services:
   smoked-steak:
-    image: ghcr.io/YOUR_GITHUB_USERNAME/smoked-steak:latest
+    image: ghcr.io/resueco/smoked-steak:latest
     network_mode: host
     volumes:
       - /path/to/your/music:/app/.music
@@ -245,42 +256,95 @@ docker compose run --rm smoked-steak up "/app/.music/path/to/album" -s WEB
 
 ## 🚀 Usage
 
-### 🎨 Terminal Colors
-smoked-steak uses distinct terminal colors for different types of messages:
+Show the command list with:
 
-* Default – General information
-* Red – Errors or critical failures
-* Green – Success messages
-* Yellow – Information headers
-* Cyan – Section headers
-* Magenta – User prompts
-
-### 🔧 CLI Mode
-smoked-steak runs in CLI mode. Quick start usage instructions can be found on the [Wiki Usage page](https://github.com/YOUR_GITHUB_USERNAME/smoked-steak/wiki#usage).
-
-The examples below show how to run smoked-steak directly. If you're using Docker, you'll need to adjust them accordingly, but the underlying principles remain the same.
-
-To see the available commands, just type:
 ```bash
-smoked-steak
+smoked-steak --help
 ```
 
-To test the connection to the trackers, run:
+Both `smoked-steak` and `steak` invoke the same CLI. Add `--help` to a command or command group for its complete
+set of options, for example `smoked-steak up --help` or `smoked-steak check --help`.
+
+### Uploading a release
+
+Start an interactive WEB upload with:
+
+```bash
+smoked-steak up "/data/path/to/album" --source WEB
+```
+
+Select a tracker and provide the original store page when known:
+
+```bash
+smoked-steak up "/data/path/to/album" --source WEB --tracker RED \
+  --source-url "https://open.qobuz.com/album/example"
+```
+
+During an upload, Smoked Steak:
+
+1. Reads the local tags and audio properties.
+2. Checks MQA, possible upconverts, CD logs, folder structure, and audio integrity when applicable.
+3. Searches the tracker for an existing group or duplicate edition.
+4. Searches metadata providers, combines the results, and opens an interactive metadata review.
+5. Optionally runs AI-assisted album-level metadata research when configured.
+6. Uploads a cover for new groups, checks matching requests, creates a private torrent, and submits it.
+7. Offers eligible FLAC/MP3 conversions, additional trackers, and configured seeding destinations.
+
+Metadata edits made in the review affect the tracker submission only: the upload path does not retag audio or
+rename the release folder. Some explicitly selected validation and processing actions **do** modify files. These
+include FLAC recompression, integrity sanitization, cover processing, deletion of disallowed files, and truncation
+of overlong paths. Downconversion and transcoding create separate output directories. Work from a recoverable copy
+when you do not want the source release changed. The legacy `--auto-rename` option remains accepted for CLI
+compatibility but currently has no effect.
+
+### Common commands
+
+| Command | Purpose |
+| --- | --- |
+| `smoked-steak checkconf` | Test tracker, metadata-provider, and seedbox configuration. |
+| `smoked-steak health` | Show the config path and check required/optional command-line dependencies. |
+| `smoked-steak meta URL` | Scrape and print metadata from one supported release URL. |
+| `smoked-steak metas QUERY` | Search enabled metadata providers for a release. |
+| `smoked-steak descgen URL...` | Combine source URLs into a BBCode tracklist and description. |
+| `smoked-steak check log PATH` | Score and validate one ripping log or all logs in a directory. |
+| `smoked-steak check integrity PATH` | Validate FLAC/MP3 files and optionally sanitize failures. |
+| `smoked-steak check upconv PATH` | Inspect 24-bit FLAC files for possible upconversion. |
+| `smoked-steak check mqa PATH` | Check files for an MQA marker. |
+| `smoked-steak downconv PATH` | Create a lower-resolution FLAC edition from 24-bit FLAC. |
+| `smoked-steak transcode PATH --bitrate 320` | Create an MP3 320 or V0 edition from FLAC. |
+| `smoked-steak compress PATH` | Recompress FLAC files to the configured compression level. |
+| `smoked-steak images up FILE... --image-host RED` | Upload images to a configured image host. |
+
+Image hosts are selected independently for general uploads and album covers:
+
+```toml
+[image]
+image_uploader = "RED"
+cover_uploader = "RED"
+red_key = "your-red-api-key"
+```
+
+Supported values are `ptpimg`, `ptscreens`, `oeimg`, `imgbb`, `catbox`, `imgbox`, `ra`, and `RED`.
+
+### Terminal colors
+
+- Default – General information
+- Red – Errors or critical failures
+- Green – Success messages
+- Yellow – Information headers
+- Cyan – Section headers
+- Magenta – User prompts
+
+More examples are available on the [Wiki Usage page](https://github.com/resueco/smoked-steak/wiki#usage).
+
+### Configuration and dependency checks
+
 ```bash
 smoked-steak checkconf
-```
-
-To check the status of smoked-steak's command line and config dependencies, run:
-```bash
+smoked-steak checkconf --metadata
+smoked-steak checkconf --seedbox
 smoked-steak health
 ```
-
-To start an upload (with the WEB source):
-```bash
-smoked-steak up /data/path/to/album -s WEB
-```
-
-You can get help directly from the CLI by appending --help to any command. This is especially useful for the up command which has a lot of possible options.
 
 ## 🔄 Updating
 
@@ -298,4 +362,5 @@ uv sync
 
 For **Docker users**:
 ```bash
-docker pull ghcr.io/YOUR_GITHUB_USERNAME/smoked-steak:latest
+docker pull ghcr.io/resueco/smoked-steak:latest
+```

@@ -7,7 +7,7 @@ import pyperclip
 from steak import cfg
 from steak.common import AliasedCommands, commandgroup
 from steak.errors import ImageUploadFailed
-from steak.images import catbox, imgbb, imgbox, oeimg, ptpimg, ptscreens, ra
+from steak.images import catbox, imgbb, imgbox, oeimg, ptpimg, ptscreens, ra, red
 
 HOSTS = {
     "ptpimg": ptpimg,
@@ -17,6 +17,7 @@ HOSTS = {
     "imgbb": imgbb,
     "imgbox": imgbox,
     "ra": ra,
+    "RED": red,
 }
 
 

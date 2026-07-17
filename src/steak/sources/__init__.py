@@ -28,6 +28,6 @@ SOURCE_ICONS = {
     "Discogs": "https://ptpimg.me/mt4ql3.png",
     "Apple Music": "https://ptpimg.me/0z2x90.png",
     "MusicBrainz": "https://ptpimg.me/56plwd.png",
-    "Qobuz": "https://ptpimg.me/e4d045.png",
+    "Qobuz": "https://redacted.sh/i/34vFQi9EGOI.png",
     "Tidal": "https://ptpimg.me/5vxo23.png",
 }

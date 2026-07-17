@@ -27,7 +27,7 @@ dottorrents_dir = '.torrents'
 # ===============================
 # IMAGE UPLOAD SETTINGS
 # ===============================
-# Image hosters: ptpimg, ptscreens, oeimg, imgbb, catbox, imgbox, ra
+# Image hosters: ptpimg, ptscreens, oeimg, imgbb, catbox, imgbox, ra, RED
 [image]
 image_uploader = "ptpimg"
 cover_uploader = "ptpimg"
@@ -42,6 +42,8 @@ oeimg_key = 'api_key'
 imgbb_key = 'api_key'
 # ra API key (log into Ra/thesungod.xyz, settings, API keys)
 ra_key = 'api_key'
+# RED API key for the internal image host (use the minimum scope required by RED)
+red_key = 'api_key'
 
 # Set to true to remove downloaded cover images that are created in source folder, when one does not exist
 # remove_auto_downloaded_cover_image = false

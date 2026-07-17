@@ -1,5 +1,32 @@
 from steak import cfg
+from steak.sources import SOURCE_ICONS
 from steak.uploader.upload import generate_source_links, generate_t_description
+
+
+def test_red_hosted_description_icons() -> None:
+    assert SOURCE_ICONS["Qobuz"] == "https://redacted.sh/i/34vFQi9EGOI.png"
+
+    original_icons_in_descriptions = cfg.upload.description.icons_in_descriptions
+    cfg.upload.description.icons_in_descriptions = True
+    try:
+        description = generate_t_description(
+            metadata={"date": None},
+            track_data={
+                "01. Track.flac": {
+                    "duration": 60,
+                    "bit rate": 0,
+                    "precision": 24,
+                    "sample rate": 96000,
+                }
+            },
+            hybrid=False,
+            metadata_urls=[],
+            source_url=None,
+        )
+    finally:
+        cfg.upload.description.icons_in_descriptions = original_icons_in_descriptions
+
+    assert "[img]https://redacted.sh/i/8dU67-usmFs.png[/img]" in description
 
 
 def test_generate_source_links_excludes_source_url() -> None:
