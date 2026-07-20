@@ -10,6 +10,7 @@ import msgspec
 
 from steak.common.constants import IMAGE_EXTENSIONS, LOSSY_EXTENSIONS
 from steak.common.files import process_files
+from steak.converter.naming import QUALITY_TAG_RE, format_quality_tag
 from steak.errors import InvalidSampleRate
 from steak.tagger.audio_info import gather_audio_info
 
@@ -19,6 +20,9 @@ SOX_DEPTH_ARGS: dict[BitDepth, list[str]] = {
     16: ["-R", "-G", "-b", "16"],
     24: ["-R", "-G"],
 }
+
+FLAC_FOLDER_RE = re.compile(r"(?:(?:16|24)\s*bit\s+)?FLAC", flags=re.IGNORECASE)
+LOSSLESS_FOLDER_RE = re.compile(r"Lossless", flags=re.IGNORECASE)
 
 
 class ConvertItem(msgspec.Struct, frozen=True):
@@ -66,19 +70,29 @@ def _build_output_path(path: str, bit_depth: BitDepth, sample_rate: int | None) 
         The output directory path string.
     """
     foldername = os.path.basename(path)
-    if re.search(r"24 ?bit FLAC", foldername, flags=re.IGNORECASE):
-        foldername = re.sub(r"24 ?bit FLAC", "FLAC", foldername, flags=re.IGNORECASE)
-    elif re.search("FLAC", foldername, flags=re.IGNORECASE):
-        foldername = re.sub("FLAC", "16bit FLAC", foldername, flags=re.IGNORECASE)
+
+    # Bit depth and sample rate belong in the separate quality tag. Normalize
+    # legacy labels such as "24bit FLAC" while keeping combined tags such as
+    # "[WEB FLAC]" intact.
+    if FLAC_FOLDER_RE.search(foldername):
+        foldername = FLAC_FOLDER_RE.sub("FLAC", foldername)
+    elif LOSSLESS_FOLDER_RE.search(foldername):
+        foldername = LOSSLESS_FOLDER_RE.sub("FLAC", foldername)
     else:
         foldername += " [FLAC]"
 
-    if sample_rate and bit_depth == 24:
-        foldername = re.sub(
-            "FLAC",
-            f"24-{sample_rate / 1000:.0f}",
+    if sample_rate is not None:
+        quality_tag = format_quality_tag(bit_depth, sample_rate)
+        if QUALITY_TAG_RE.search(foldername):
+            foldername = QUALITY_TAG_RE.sub(quality_tag, foldername)
+        else:
+            foldername += f" {quality_tag}"
+    elif QUALITY_TAG_RE.search(foldername):
+        # This fallback is useful to callers of the pure helper. convert_folder
+        # normally resolves the real target rate before building the path.
+        foldername = QUALITY_TAG_RE.sub(
+            lambda match: f"[{bit_depth}B-{match.group('sample_rate')}kHz]",
             foldername,
-            flags=re.IGNORECASE,
         )
 
     return os.path.join(os.path.dirname(path), foldername)
@@ -88,6 +102,7 @@ def _collect_convert_items(
     path: str,
     new_path: str,
     sample_rate: int | None,
+    audio_info: dict[str, dict] | None = None,
 ) -> list[ConvertItem]:
     """Collect all 24-bit FLAC files and compute their output paths and target rates.
 
@@ -95,13 +110,15 @@ def _collect_convert_items(
         path: Source album directory path.
         new_path: Destination album directory path.
         sample_rate: Explicit target sample rate, or None for automatic.
+        audio_info: Previously gathered audio properties, when available.
 
     Returns:
         List of ConvertItem structs.
     """
     src_path = Path(path)
     dst_path = Path(new_path)
-    audio_info = gather_audio_info(path)
+    if audio_info is None:
+        audio_info = gather_audio_info(path)
 
     items: list[ConvertItem] = []
     for info_file, file_info in audio_info.items():
@@ -239,13 +256,23 @@ async def convert_folder(
         Tuple of (final_sample_rate, new_folder_path).
     """
     _validate_lossless(path)
-    new_path = _build_output_path(path, bit_depth, sample_rate)
+    audio_info = gather_audio_info(path)
+    target_rates = {
+        sample_rate if sample_rate is not None else _resolve_sample_rate(file_info["sample rate"])
+        for file_info in audio_info.values()
+        if file_info["precision"] == 24
+    }
+    folder_sample_rate = sample_rate
+    if folder_sample_rate is None and len(target_rates) == 1:
+        folder_sample_rate = next(iter(target_rates))
+
+    new_path = _build_output_path(path, bit_depth, folder_sample_rate)
 
     if os.path.isdir(new_path):
         click.secho(f"{new_path} already exists.", fg="yellow")
-        return sample_rate, new_path
+        return folder_sample_rate, new_path
 
-    items = _collect_convert_items(path, new_path, sample_rate)
+    items = _collect_convert_items(path, new_path, sample_rate, audio_info)
     convert_srcs = frozenset(item.src for item in items)
     _copy_extra_files(path, new_path, convert_srcs, essential_only=essential_only)
     await _convert_audio_files(items, bit_depth)

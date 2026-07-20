@@ -13,6 +13,7 @@ from mutagen.id3 import APIC, TXXX, Frames
 
 from steak.common.constants import IMAGE_EXTENSIONS, LOSSY_EXTENSIONS
 from steak.common.files import process_files
+from steak.converter.naming import remove_quality_tags
 
 Bitrate = Literal["V0", "320"]
 
@@ -23,7 +24,7 @@ LAME_COMMAND_MAP: dict[Bitrate, list[str]] = {
 }
 
 SKIP_EXTENSIONS = frozenset((".cue", ".log", ".m3u", ".m3u8", ".accurip"))
-FLAC_FOLDER_RE = re.compile(r"(24 ?bit )?FLAC", flags=re.IGNORECASE)
+FLAC_FOLDER_RE = re.compile(r"(?:(?:16|24)\s*bit\s+)?FLAC", flags=re.IGNORECASE)
 LOSSLESS_FOLDER_RE = re.compile(r"Lossless", flags=re.IGNORECASE)
 
 # Vorbis comment → ID3v2 frame mapping
@@ -81,23 +82,14 @@ def _build_output_path(path: str, bitrate: Bitrate) -> str:
     Returns:
         The output directory path string.
     """
-    to_append: list[str] = []
-    foldername = os.path.basename(path)
+    foldername = remove_quality_tags(os.path.basename(path))
 
     if FLAC_FOLDER_RE.search(foldername):
-        if LOSSLESS_FOLDER_RE.search(foldername):
-            foldername = FLAC_FOLDER_RE.sub("MP3", foldername)
-            foldername = LOSSLESS_FOLDER_RE.sub(bitrate, foldername)
-        else:
-            foldername = FLAC_FOLDER_RE.sub(f"MP3 {bitrate}", foldername)
+        foldername = FLAC_FOLDER_RE.sub(f"MP3 {bitrate}", foldername)
     elif LOSSLESS_FOLDER_RE.search(foldername):
-        foldername = LOSSLESS_FOLDER_RE.sub(bitrate, foldername)
-        to_append.append("MP3")
+        foldername = LOSSLESS_FOLDER_RE.sub(f"MP3 {bitrate}", foldername)
     else:
-        to_append.append(f"MP3 {bitrate}")
-
-    if to_append:
-        foldername += f" [{' '.join(to_append)}]"
+        foldername += f" [MP3 {bitrate}]"
 
     return os.path.join(os.path.dirname(path), foldername)
 

@@ -4,6 +4,10 @@ Smoked Steak is an interactive command-line tool for checking, describing, and u
 Gazelle-based trackers. It supports RED, OPS, and DIC and can continue seeding an upload locally or on remote
 seedboxes.
 
+Smoked Steak is based on [Smoked Salmon](https://github.com/smokin-salmon/smoked-salmon). Full credit goes to the
+Smoked Salmon project and its contributors for the original tool; this project contains modifications made on top
+of that work.
+
 The upload workflow reads tags from the source files and combines them with online metadata for the tracker
 submission. It does **not** retag audio files or rename release folders as part of metadata review.
 
@@ -296,6 +300,28 @@ include FLAC recompression, integrity sanitization, cover processing, deletion o
 of overlong paths. Downconversion and transcoding create separate output directories. Work from a recoverable copy
 when you do not want the source release changed. The legacy `--auto-rename` option remains accepted for CLI
 compatibility but currently has no effect.
+
+### Conversion output folder names
+
+Downconversion and transcoding update common release quality tags in the new output folder name. The artist,
+album, year, and source portions are preserved. FLAC outputs retain a separate `[FLAC]` format tag and replace the
+bit-depth/sample-rate tag with the actual conversion target. MP3 outputs replace the FLAC format tag and remove the
+lossless quality tag.
+
+| Conversion | Source tags | Output tags |
+| --- | --- | --- |
+| 24-bit FLAC to 16-bit/44.1kHz | `[FLAC] [24B-44.1kHz]` | `[FLAC] [16B-44.1kHz]` |
+| 24-bit FLAC at 96kHz to automatic 16-bit | `[FLAC] [24B-96kHz]` | `[FLAC] [16B-48kHz]` |
+| High-resolution FLAC to 24-bit/96kHz | `[FLAC] [24B-192kHz]` | `[FLAC] [24B-96kHz]` |
+| FLAC to MP3 320 | `[FLAC] [16B-44.1kHz]` | `[MP3 320]` |
+| FLAC to MP3 V0 | `[FLAC] [24B-48kHz]` | `[MP3 V0]` |
+
+For example:
+
+```text
+Artist — Album (2020) [WEB] [FLAC] [24B-44.1kHz]
+Artist — Album (2020) [WEB] [FLAC] [16B-44.1kHz]
+```
 
 ### Common commands
 
