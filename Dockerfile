@@ -44,7 +44,7 @@ WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    sox flac mp3val curl nano vim rclone \
+    sox flac curl nano vim rclone \
     ca-certificates lame \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean

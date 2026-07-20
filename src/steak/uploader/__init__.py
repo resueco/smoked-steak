@@ -11,13 +11,7 @@ import pyperclip
 import steak.trackers
 from steak import cfg
 from steak.checks import mqa_test
-from steak.checks.integrity import (
-    check_integrity,
-    format_integrity,
-    sanitize_integrity,
-)
 from steak.checks.logs import check_log_cambia
-from steak.checks.upconverts import upload_upconvert_test
 from steak.common import commandgroup
 from steak.constants import ENCODINGS, FORMATS, SOURCES, TAG_ENCODINGS
 from steak.converter.downconverting import (
@@ -110,11 +104,6 @@ if TYPE_CHECKING:
     is_flag=True,
     help="Rename files and folders automatically",
 )
-@click.option(
-    "--skip-up",
-    is_flag=True,
-    help="Skip check for 24 bit upconversion",
-)
 @click.option("--scene", is_flag=True, help="Is this a scene release (default: False)")
 @click.option(
     "--source-url",
@@ -144,11 +133,6 @@ if TYPE_CHECKING:
     help="Skip checking CD logs",
 )
 @click.option(
-    "--skip-integrity-check",
-    is_flag=True,
-    help="Skip integrity check of audio files",
-)
-@click.option(
     "--essential-only",
     "-eo",
     is_flag=True,
@@ -164,7 +148,6 @@ async def up(
     tracker: str,
     request: str | None,
     auto_rename: bool,
-    skip_up: bool,
     scene: bool,
     source_url: str | None,
     skip_initial_review: bool,
@@ -172,7 +155,6 @@ async def up(
     yyy: bool,
     skip_mqa: bool,
     skip_log_check: bool,
-    skip_integrity_check: bool,
     essential_only: bool,
 ) -> None:
     """Command to upload an album folder to a Gazelle Site."""
@@ -207,10 +189,8 @@ async def up(
         recompress=compress,
         request_id=request,
         auto_rename=auto_rename,
-        skip_up=skip_up,
         skip_mqa=skip_mqa,
         skip_log_check=skip_log_check,
-        skip_integrity_check=skip_integrity_check,
         essential_only=essential_only,
         skip_initial_review=skip_initial_review,
         apply_ai_suggestions=apply_ai_suggestions,
@@ -230,10 +210,8 @@ async def upload(
     searchstrs: list[str] | None = None,
     request_id: int | str | None = None,
     auto_rename: bool = False,
-    skip_up: bool = False,
     skip_mqa: bool = False,
     skip_log_check: bool = False,
-    skip_integrity_check: bool = False,
     essential_only: bool = False,
     skip_initial_review: bool = False,
     apply_ai_suggestions: bool = False,
@@ -255,10 +233,8 @@ async def upload(
         searchstrs: Search strings for dupe checking.
         request_id: Request ID to fill.
         auto_rename: Auto-rename files and folders.
-        skip_up: Skip upconvert check.
         skip_mqa: Skip MQA check.
         skip_log_check: Skip log checking.
-        skip_integrity_check: Skip integrity check.
         essential_only: If True, only essential extensions are allowed.
         skip_initial_review: Skip the first manual metadata review before AI review.
         apply_ai_suggestions: Automatically apply AI review suggestions when present.
@@ -286,16 +262,6 @@ async def upload(
             click.secho("Checking for MQA release (first file only)", fg="cyan", bold=True)
             await mqa_test(path)
             click.secho("No MQA release detected", fg="green")
-
-        if rls_data["encoding"] == "24bit Lossless" and not skip_up:
-            if not cfg.upload.yes_all:
-                if click.confirm(
-                    click.style("\n24bit detected. Do you want to check whether might be upconverted?", fg="magenta"),
-                    default=True,
-                ):
-                    await upload_upconvert_test(path)
-            else:
-                await upload_upconvert_test(path)
 
         if source == "CD" and not skip_log_check:
             click.secho("\nChecking logs", fg="green")
@@ -339,7 +305,6 @@ async def upload(
             rls_data,
             recompress,
             auto_rename,
-            skip_integrity_check,
             essential_only,
             skip_initial_review,
             apply_ai_suggestions,
@@ -486,7 +451,6 @@ async def edit_metadata(
     rls_data: dict[str, Any],
     recompress: bool,
     auto_rename: bool,
-    skip_integrity_check: bool = False,
     essential_only: bool = False,
     skip_initial_review: bool = False,
     apply_ai_suggestions: bool = False,
@@ -505,16 +469,12 @@ async def edit_metadata(
         rls_data: Release data dictionary from pre_data construction.
         recompress: Whether to recompress audio files after tagging.
         auto_rename: Kept for CLI compatibility; upload no longer renames files or folders.
-        skip_integrity_check: Whether to skip the integrity check step.
         essential_only: If True, only essential extensions are allowed.
         skip_initial_review: Skip the first manual metadata review before AI review.
         apply_ai_suggestions: Automatically apply AI review suggestions when present.
 
     Returns:
         A tuple of (path, metadata, tags, audio_info) after editing is complete.
-
-    Raises:
-        click.Abort: If a scene release fails sanitization.
     """
     while True:
         metadata = await review_metadata_with_ai(
@@ -529,32 +489,6 @@ async def edit_metadata(
         if not metadata["scene"] and recompress:
             await recompress_path(path)
         await check_folder_structure(path, metadata["scene"], essential_only=essential_only)
-
-        if not skip_integrity_check:
-            click.secho("\nChecking integrity of audio files...", fg="cyan", bold=True)
-            result = await check_integrity(path)
-            click.echo(format_integrity(result))
-
-            if not result[0] and metadata["scene"]:
-                click.secho(
-                    "Some files failed sanitization, and this a scene release. "
-                    "You need to sanitize and de-scene before uploading. Aborting.",
-                    fg="red",
-                    bold=True,
-                )
-                raise click.Abort()
-            if not result[0] and (
-                cfg.upload.yes_all
-                or click.confirm(
-                    click.style("\nDo you want to sanitize this upload?", fg="magenta"),
-                    default=True,
-                )
-            ):
-                click.secho("\nSanitizing files...", fg="cyan", bold=True)
-                if await sanitize_integrity(path):
-                    click.secho("Sanitization complete", fg="green")
-                else:
-                    click.secho("Some files failed sanitization", fg="red", bold=True)
 
         if cfg.upload.yes_all or click.confirm(
             click.style("\nWould you like to upload the torrent? (No to re-run metadata section)", fg="magenta"),
@@ -961,9 +895,22 @@ async def upload_and_report(
     return torrent_id, group_id, torrent_path, torrent_content, url
 
 
-def convert_genres(genres):
-    """Convert the weirdly spaced genres to RED-compliant genres."""
-    return ",".join(re.sub("[-_ ]", ".", g).strip() for g in genres)
+def convert_genres(genres: list[str]) -> str:
+    """Convert genres to tracker tags without altering the metadata genres.
+
+    ``World Music`` is too broad to be useful alongside a more specific genre,
+    so omit it when another genre is available. Keep it when it is the only
+    genre supplied.
+    """
+
+    def is_world_music(genre: str) -> bool:
+        normalized = re.sub(r"[-_.\s]+", " ", genre).strip().casefold()
+        return normalized == "world music"
+
+    populated_genres = [genre for genre in genres if genre.strip()]
+    non_world_genres = [genre for genre in populated_genres if not is_world_music(genre)]
+    upload_genres = non_world_genres or populated_genres
+    return ",".join(re.sub("[-_ ]", ".", genre).strip() for genre in upload_genres)
 
 
 async def _prompt_source():

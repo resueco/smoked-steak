@@ -321,7 +321,7 @@ async def health() -> None:
 
     click.echo()
 
-    req_deps = ["curl", "flac", "git", "lame", "mp3val", "sox"]
+    req_deps = ["curl", "flac", "git", "lame", "sox"]
     opt_deps = ["puddletag", "feh", "rclone"]
     click.secho("Required Dependencies:", fg="cyan")
     _iter_which(req_deps)

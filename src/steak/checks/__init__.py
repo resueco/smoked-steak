@@ -2,10 +2,8 @@ import os
 
 import asyncclick as click
 
-from steak.checks.integrity import handle_integrity_check
 from steak.checks.logs import check_log_cambia
 from steak.checks.mqa import check_mqa
-from steak.checks.upconverts import test_upconverted
 from steak.common import commandgroup
 from steak.errors import CRCMismatchError, EditedLogError
 
@@ -49,28 +47,6 @@ async def _check_log(path: str) -> None:
         click.secho("Error: CRC mismatch between log and audio files!", fg="red", bold=True)
     except Exception as e:
         click.secho(f"Error checking log: {e}", fg="red")
-
-
-@check.command()
-@click.argument("path", type=click.Path(exists=True, resolve_path=True))
-async def upconv(path: str) -> None:
-    """Check a 24bit FLAC file for upconversion.
-
-    Args:
-        path: Path to the FLAC file or directory to check.
-    """
-    await test_upconverted(path)
-
-
-@check.command()
-@click.argument("path", type=click.Path(exists=True, resolve_path=True))
-async def integrity(path: str) -> None:
-    """Check the integrity of audio files.
-
-    Args:
-        path: Path to the audio file or directory to check.
-    """
-    await handle_integrity_check(path)
 
 
 @check.command()

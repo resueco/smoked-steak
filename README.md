@@ -17,8 +17,7 @@ submission. It does **not** retag audio files or rename release folders as part 
 - **Metadata retrieval and review** – Combine metadata from Apple Music, Bandcamp, Beatport, Deezer, Discogs,
   MusicBrainz, Qobuz, and Tidal, then review it before submission.
 - **Optional AI metadata review** – Research and verify album-level metadata through an OpenAI-compatible API.
-- **Audio and folder checks** – Validate FLAC/MP3 integrity, CD ripping logs and checksums, folder structure, MQA
-  markers, and possible 24-bit upconverts.
+- **Audio and folder checks** – Validate CD ripping logs and checksums, folder structure, and MQA markers.
 - **Duplicate and request checks** – Find existing tracker groups, avoid duplicate editions, and identify requests
   that the upload can fill.
 - **Descriptions and covers** – Generate BBCode tracklists, source links, encoding details, and upload cover art via
@@ -44,7 +43,7 @@ also works. Both isolate Smoked Steak from the system Python installation.
 #### Linux
 1. Install system packages:
     ```bash
-    sudo apt install git sox flac mp3val curl lame
+    sudo apt install git sox flac curl lame
     ```
 
 2. Install uv:
@@ -92,7 +91,7 @@ also works. Both isolate Smoked Steak from the system Python installation.
 
 2. Install system packages using Homebrew:
     ```bash
-    brew install git sox flac mp3val curl lame
+    brew install git sox flac curl lame
     ```
 
 3. Install uv:
@@ -287,7 +286,7 @@ smoked-steak up "/data/path/to/album" --source WEB --tracker RED \
 During an upload, Smoked Steak:
 
 1. Reads the local tags and audio properties.
-2. Checks MQA, possible upconverts, CD logs, folder structure, and audio integrity when applicable.
+2. Checks MQA, CD logs, and folder structure when applicable.
 3. Searches the tracker for an existing group or duplicate edition.
 4. Searches metadata providers, combines the results, and opens an interactive metadata review.
 5. Optionally runs AI-assisted album-level metadata research when configured.
@@ -296,10 +295,14 @@ During an upload, Smoked Steak:
 
 Metadata edits made in the review affect the tracker submission only: the upload path does not retag audio or
 rename the release folder. Some explicitly selected validation and processing actions **do** modify files. These
-include FLAC recompression, integrity sanitization, cover processing, deletion of disallowed files, and truncation
+include FLAC recompression, cover processing, deletion of disallowed files, and truncation
 of overlong paths. Downconversion and transcoding create separate output directories. Work from a recoverable copy
 when you do not want the source release changed. The legacy `--auto-rename` option remains accepted for CLI
 compatibility but currently has no effect.
+
+When preparing tracker tags, `World Music` is omitted if the release also has a more specific genre. It remains
+when it is the release's only genre. This affects only the tags submitted to the tracker; metadata and source audio
+files are not modified.
 
 ### Conversion output folder names
 
@@ -333,8 +336,6 @@ Artist — Album (2020) [WEB] [FLAC] [16B-44.1kHz]
 | `smoked-steak metas QUERY` | Search enabled metadata providers for a release. |
 | `smoked-steak descgen URL...` | Combine source URLs into a BBCode tracklist and description. |
 | `smoked-steak check log PATH` | Score and validate one ripping log or all logs in a directory. |
-| `smoked-steak check integrity PATH` | Validate FLAC/MP3 files and optionally sanitize failures. |
-| `smoked-steak check upconv PATH` | Inspect 24-bit FLAC files for possible upconversion. |
 | `smoked-steak check mqa PATH` | Check files for an MQA marker. |
 | `smoked-steak downconv PATH` | Create a lower-resolution FLAC edition from 24-bit FLAC. |
 | `smoked-steak transcode PATH --bitrate 320` | Create an MP3 320 or V0 edition from FLAC. |
